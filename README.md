@@ -5,7 +5,7 @@ Proyek ini mengusung tema Edukasi dan dibangun menggunakan arsitektur pemisahan 
 2. **edutrack-fe**: Frontend menggunakan aplikasi GUI JavaFX
 
 ## Prasyarat
-Sebelum menjalankan proyek, pastikan rekan tim Anda sudah menginstal:
+Sebelum menjalankan proyek, pastikan Anda sudah menginstal:
 - **Java JDK 21**
 - **Apache Maven** (Untuk menjalankan Frontend)
 - **Git**
@@ -29,7 +29,6 @@ cd edutrack-be
 # Untuk pengguna Mac/Linux
 ./mvnw spring-boot:run
 ```
-*(Catatan: Saat ini backend mungkin belum bisa menyala dengan sempurna karena konfigurasi database belum kita selesaikan, tetapi ini adalah perintah standar untuk menjalankannya).*
 
 ### 3. Menjalankan Frontend (JavaFX)
 Buka terminal *baru* (agar terminal backend tetap berjalan), masuk ke folder `edutrack-fe`, dan jalankan perintah:
