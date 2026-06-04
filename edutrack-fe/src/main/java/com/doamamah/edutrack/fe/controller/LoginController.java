@@ -57,7 +57,7 @@ public class LoginController implements Initializable {
         usernameField.setOnAction(e -> passwordField.requestFocus());
         
         if (regRoleCombo != null) {
-            regRoleCombo.getItems().addAll("Siswa", "Pengajar");
+            regRoleCombo.getItems().addAll("Siswa");
             regRoleCombo.setValue("Siswa");
         }
         hideError();

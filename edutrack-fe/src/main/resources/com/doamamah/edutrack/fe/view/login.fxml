@@ -277,7 +277,7 @@
                     </VBox>
 
                     <!-- Peran / Role -->
-                    <VBox spacing="4" alignment="CENTER_LEFT" maxWidth="Infinity">
+                    <VBox spacing="4" alignment="CENTER_LEFT" maxWidth="Infinity" visible="false" managed="false">
                         <Label text="Saya adalah seorang" styleClass="input-label"/>
                         <ComboBox
                             fx:id="regRoleCombo"
