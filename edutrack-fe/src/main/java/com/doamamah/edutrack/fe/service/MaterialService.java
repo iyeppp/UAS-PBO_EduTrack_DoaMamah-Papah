@@ -233,4 +233,80 @@ public class MaterialService {
 
         return dummies;
     }
+
+    /**
+     * Memperbarui materi yang sudah ada dalam cache lokal dan mengirimkan request ke backend.
+     *
+     * @param material Materi yang telah diedit
+     */
+    public void updateMaterial(CourseMaterial material) {
+        if (cachedMaterials == null) {
+            getAllMaterials();
+        }
+        for (int i = 0; i < cachedMaterials.size(); i++) {
+            if (cachedMaterials.get(i).getId() != null && cachedMaterials.get(i).getId().equals(material.getId())) {
+                cachedMaterials.set(i, material);
+                break;
+            }
+        }
+
+        // Kirim PUT request ke backend secara asynchronous
+        new Thread(() -> {
+            try {
+                JsonObject json = new JsonObject();
+                json.addProperty("title", material.getTitle());
+                json.addProperty("description", material.getDescription());
+                json.addProperty("type", material.getMaterialType());
+
+                if (material instanceof VideoMaterial) {
+                    VideoMaterial vm = (VideoMaterial) material;
+                    json.addProperty("videoUrl", vm.getVideoUrl());
+                    json.addProperty("durationMinutes", vm.getDurationMinutes());
+                } else if (material instanceof TextMaterial) {
+                    TextMaterial tm = (TextMaterial) material;
+                    json.addProperty("textContent", tm.getTextContent());
+                }
+
+                HttpRequest putRequest = HttpRequest.newBuilder()
+                        .uri(URI.create(BASE_URL + "/api/materials/" + material.getId()))
+                        .header("Content-Type", "application/json")
+                        .PUT(HttpRequest.BodyPublishers.ofString(gson.toJson(json)))
+                        .timeout(Duration.ofSeconds(5))
+                        .build();
+
+                httpClient.send(putRequest, HttpResponse.BodyHandlers.discarding());
+                System.out.println("Berhasil memperbarui materi di backend.");
+            } catch (Exception e) {
+                System.err.println("Backend tidak merespon, pembaruan materi disimpan dalam memori lokal saja: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    /**
+     * Menghapus materi dari cache lokal dan mengirimkan request hapus ke backend.
+     *
+     * @param id ID materi yang akan dihapus
+     */
+    public void deleteMaterial(Long id) {
+        if (cachedMaterials == null) {
+            getAllMaterials();
+        }
+        cachedMaterials.removeIf(m -> m.getId() != null && m.getId().equals(id));
+
+        // Kirim DELETE request ke backend secara asynchronous
+        new Thread(() -> {
+            try {
+                HttpRequest deleteRequest = HttpRequest.newBuilder()
+                        .uri(URI.create(BASE_URL + "/api/materials/" + id))
+                        .DELETE()
+                        .timeout(Duration.ofSeconds(5))
+                        .build();
+
+                httpClient.send(deleteRequest, HttpResponse.BodyHandlers.discarding());
+                System.out.println("Berhasil menghapus materi di backend.");
+            } catch (Exception e) {
+                System.err.println("Backend tidak merespon, penghapusan materi disimpan dalam memori lokal saja: " + e.getMessage());
+            }
+        }).start();
+    }
 }
