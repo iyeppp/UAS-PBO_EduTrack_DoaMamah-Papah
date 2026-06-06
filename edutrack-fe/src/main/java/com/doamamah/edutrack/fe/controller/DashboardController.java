@@ -32,7 +32,8 @@ public class DashboardController implements Initializable {
     @FXML private Button btnDashboard;
     @FXML private Button btnMaterials;
     @FXML private Button btnQuiz;
-    @FXML private Button btnCreateMaterial;
+
+    @FXML private Button btnStudents;
     @FXML private Button btnLogout;
     @FXML private Label contentTitleLabel;
     @FXML private Label greetingLabel;
@@ -47,6 +48,7 @@ public class DashboardController implements Initializable {
     private DashboardHomeView dashboardHomeView;
     private MaterialView materialView;
     private QuizView quizView;
+    private StudentListView studentListView;
 
     public User getCurrentUser() { return currentUser; }
     public MaterialService getMaterialService() { return materialService; }
@@ -61,6 +63,7 @@ public class DashboardController implements Initializable {
         dashboardHomeView = new DashboardHomeView(this);
         materialView = new MaterialView(this);
         quizView = new QuizView(this);
+        studentListView = new StudentListView(this);
         showDashboardContent();
     }
 
@@ -78,10 +81,13 @@ public class DashboardController implements Initializable {
         String firstName = fullName != null ? fullName.split(" ")[0] : "Pengguna";
         greetingLabel.setText("Halo, " + firstName + "!");
 
-        // Jika Guru, tampilkan tombol navigasi Tambah Materi
+        // Jika Guru, tampilkan tombol navigasi Daftar Siswa
         if (currentUser instanceof Teacher) {
-            btnCreateMaterial.setVisible(true);
-            btnCreateMaterial.setManaged(true);
+            
+            if (btnStudents != null) {
+                btnStudents.setVisible(true);
+                btnStudents.setManaged(true);
+            }
         }
     }
 
@@ -130,12 +136,14 @@ public class DashboardController implements Initializable {
         contentArea.getChildren().add(quizView.buildQuizContent());
     }
 
+
+
     @FXML
-    public void showCreateMaterialContent() {
-        setActiveButton(btnCreateMaterial);
-        contentTitleLabel.setText("Tambah Materi");
+    public void showStudentsContent() {
+        setActiveButton(btnStudents);
+        contentTitleLabel.setText("Daftar Siswa");
         contentArea.getChildren().clear();
-        contentArea.getChildren().add(materialView.buildForm(null));
+        contentArea.getChildren().add(studentListView.buildContent());
     }
 
     @FXML
@@ -197,8 +205,9 @@ public class DashboardController implements Initializable {
         btnDashboard.getStyleClass().remove("nav-btn-active");
         btnMaterials.getStyleClass().remove("nav-btn-active");
         btnQuiz.getStyleClass().remove("nav-btn-active");
-        if (btnCreateMaterial != null) {
-            btnCreateMaterial.getStyleClass().remove("nav-btn-active");
+
+        if (btnStudents != null) {
+            btnStudents.getStyleClass().remove("nav-btn-active");
         }
         if (!activeBtn.getStyleClass().contains("nav-btn-active")) {
             activeBtn.getStyleClass().add("nav-btn-active");

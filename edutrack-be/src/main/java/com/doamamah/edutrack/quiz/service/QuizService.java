@@ -83,6 +83,13 @@ public class QuizService {
         if (!quizRepository.existsById(id)) {
             throw new RuntimeException("Kuis dengan ID " + id + " tidak ditemukan.");
         }
+        
+        // Hapus semua riwayat pengerjaan yang merujuk ke kuis ini (menghindari Foreign Key violation)
+        List<com.doamamah.edutrack.quiz.model.QuizAttempt> attempts = attemptRepository.findByQuizIdOrderByAttemptDateDesc(id);
+        if (!attempts.isEmpty()) {
+            attemptRepository.deleteAll(attempts);
+        }
+
         quizRepository.deleteById(id);
     }
 

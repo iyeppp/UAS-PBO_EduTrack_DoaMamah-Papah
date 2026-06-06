@@ -24,4 +24,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT COUNT(u) FROM User u WHERE TYPE(u) = Teacher")
     long countTeachers();
+
+    @Query("SELECT u FROM User u WHERE TYPE(u) = Student")
+    java.util.List<User> findAllStudents();
 }

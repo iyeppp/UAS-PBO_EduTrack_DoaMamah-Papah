@@ -24,44 +24,288 @@ public class MaterialView {
     }
 
     public Node buildListContent(List<CourseMaterial> materials) {
-        VBox root = new VBox(14);
-        root.setMaxWidth(Double.MAX_VALUE);
+        User currentUser = controller.getCurrentUser();
+        if (currentUser instanceof Teacher) {
+            return buildTeacherMaterialContent(materials);
+        } else {
+            return buildStudentMaterialContent(materials);
+        }
+    }
+
+    private Node buildStudentMaterialContent(List<CourseMaterial> materials) {
+        HBox mainLayout = new HBox(20);
+        mainLayout.setMaxWidth(Double.MAX_VALUE);
+
+        VBox leftColumn = new VBox(14);
+        leftColumn.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(leftColumn, Priority.ALWAYS);
 
         if (materials.isEmpty()) {
             Label emptyLabel = new Label("Tidak ada materi yang tersedia.");
             emptyLabel.getStyleClass().add("placeholder-text");
-            root.getChildren().add(emptyLabel);
-            return root;
+            leftColumn.getChildren().add(emptyLabel);
+        } else {
+            // Header section
+            HBox header = new HBox(12);
+            header.setAlignment(Pos.CENTER_LEFT);
+            Label sectionLabel = new Label("Daftar Materi Tersedia");
+            sectionLabel.getStyleClass().add("section-title");
+            Region sp = new Region();
+            HBox.setHgrow(sp, Priority.ALWAYS);
+            Label countLabel = new Label(materials.size() + " materi");
+            countLabel.getStyleClass().add("material-count");
+            header.getChildren().addAll(sectionLabel, sp, countLabel);
+            leftColumn.getChildren().add(header);
+
+            // FlowPane for responsive wrapping columns
+            FlowPane cardsContainer = new FlowPane();
+            cardsContainer.setHgap(16);
+            cardsContainer.setVgap(16);
+            cardsContainer.setMaxWidth(Double.MAX_VALUE);
+            cardsContainer.setPrefWrapLength(750);
+
+            for (CourseMaterial material : materials) {
+                VBox card = buildMaterialCard(material);
+                card.setPrefWidth(340);
+                card.setMinWidth(300);
+                cardsContainer.getChildren().add(card);
+            }
+
+            leftColumn.getChildren().add(cardsContainer);
         }
 
-        // Header section
-        HBox header = new HBox(8);
-        header.setAlignment(Pos.CENTER_LEFT);
-        Label sectionLabel = new Label("Daftar Materi Tersedia");
-        sectionLabel.getStyleClass().add("section-title");
-        Region sp = new Region();
-        HBox.setHgrow(sp, Priority.ALWAYS);
-        Label countLabel = new Label(materials.size() + " materi");
-        countLabel.getStyleClass().add("material-count");
-        header.getChildren().addAll(sectionLabel, sp, countLabel);
-        root.getChildren().add(header);
+        // Right side: Stats Panel
+        VBox rightColumn = new VBox(16);
+        rightColumn.setPadding(new Insets(20));
+        rightColumn.getStyleClass().add("section-box");
+        rightColumn.setPrefWidth(320);
+        rightColumn.setMaxWidth(320);
 
-        // FlowPane for responsive wrapping columns
-        FlowPane cardsContainer = new FlowPane();
-        cardsContainer.setHgap(16);
-        cardsContainer.setVgap(16);
-        cardsContainer.setMaxWidth(Double.MAX_VALUE);
-        cardsContainer.setPrefWrapLength(750);
+        Label statsTitle = new Label("Ringkasan Materi");
+        statsTitle.getStyleClass().add("section-title");
+        statsTitle.setStyle("-fx-font-size: 15px;");
 
-        for (CourseMaterial material : materials) {
-            VBox card = buildMaterialCard(material);
-            card.setPrefWidth(340);
-            card.setMinWidth(300);
-            cardsContainer.getChildren().add(card);
+        long videoCount = materials.stream().filter(m -> "VIDEO".equals(m.getMaterialType())).count();
+        long textCount = materials.stream().filter(m -> "TEXT".equals(m.getMaterialType())).count();
+
+        VBox statBox1 = buildMiniStatRow("Total Materi", String.valueOf(materials.size()), "modul", "#FF7A00");
+        VBox statBox2 = buildMiniStatRow("Materi Video", String.valueOf(videoCount), "video", "#059669");
+        VBox statBox3 = buildMiniStatRow("Materi Teks", String.valueOf(textCount), "artikel", "#D97706");
+
+        // Illustration
+        VBox illusBox = new VBox(16);
+        illusBox.setAlignment(Pos.CENTER);
+        try {
+            javafx.scene.image.ImageView matImg = new javafx.scene.image.ImageView(
+                new javafx.scene.image.Image(getClass().getResourceAsStream("/com/doamamah/edutrack/fe/images/mascot_face.png"))
+            );
+            matImg.setFitWidth(120);
+            matImg.setPreserveRatio(true);
+            matImg.setSmooth(true);
+
+            Label promoTitle = new Label("Tetap Semangat!");
+            promoTitle.getStyleClass().add("section-title");
+            promoTitle.setStyle("-fx-font-size: 15px;");
+            Label promoText = new Label("Pelajari semua materi yang ada untuk meningkatkan pemahamanmu. Jangan lupa kerjakan kuis setelah belajar!");
+            promoText.getStyleClass().add("card-description");
+            promoText.setWrapText(true);
+            promoText.setAlignment(Pos.CENTER);
+
+            illusBox.getChildren().addAll(matImg, promoTitle, promoText);
+        } catch (Exception e) {}
+
+        rightColumn.getChildren().addAll(statsTitle, statBox1, statBox2, statBox3, illusBox);
+
+        mainLayout.getChildren().addAll(leftColumn, rightColumn);
+        return mainLayout;
+    }
+
+    private Node buildTeacherMaterialContent(List<CourseMaterial> materials) {
+        HBox mainLayout = new HBox(20);
+        mainLayout.setMaxWidth(Double.MAX_VALUE);
+
+        VBox leftColumn = new VBox(20);
+        leftColumn.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(leftColumn, Priority.ALWAYS);
+
+        // Header with "Buat Materi Baru" button
+        HBox headerBox = new HBox(12);
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+        headerBox.setPadding(new Insets(0, 0, 10, 0));
+
+        VBox titleBox = new VBox(4);
+        HBox titleRow = new HBox(10);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+        Label matTitle = new Label("Kelola Materi Pembelajaran");
+        matTitle.getStyleClass().add("section-title");
+        matTitle.setStyle("-fx-font-size: 20px;");
+        titleRow.getChildren().add(matTitle);
+        Label matSub = new Label("Tambahkan materi baru dan pantau jumlah materi e-learning.");
+        matSub.getStyleClass().add("card-description");
+        titleBox.getChildren().addAll(titleRow, matSub);
+        HBox.setHgrow(titleBox, Priority.ALWAYS);
+
+        Button btnCreate = new Button();
+        btnCreate.getStyleClass().add("btn-create-quiz-round");
+
+        javafx.scene.shape.SVGPath plusIcon = new javafx.scene.shape.SVGPath();
+        plusIcon.setContent("M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z");
+        plusIcon.setStyle("-fx-fill: #FFFFFF;");
+
+        btnCreate.setGraphic(plusIcon);
+        btnCreate.setTooltip(new Tooltip("Buat Materi Baru"));
+
+        btnCreate.setStyle(
+            "-fx-background-color: #059669; " +
+            "-fx-background-radius: 50%; " +
+            "-fx-min-width: 40px; -fx-min-height: 40px; " +
+            "-fx-max-width: 40px; -fx-max-height: 40px; " +
+            "-fx-cursor: hand; " +
+            "-fx-effect: dropshadow(gaussian, rgba(5, 150, 105, 0.2), 6, 0, 0, 2);"
+        );
+
+        btnCreate.setOnMouseEntered(e -> btnCreate.setStyle(
+            "-fx-background-color: #047857; " +
+            "-fx-background-radius: 50%; " +
+            "-fx-min-width: 40px; -fx-min-height: 40px; " +
+            "-fx-max-width: 40px; -fx-max-height: 40px; " +
+            "-fx-cursor: hand; " +
+            "-fx-effect: dropshadow(gaussian, rgba(4, 120, 87, 0.4), 8, 0, 0, 3);"
+        ));
+
+        btnCreate.setOnMouseExited(e -> btnCreate.setStyle(
+            "-fx-background-color: #059669; " +
+            "-fx-background-radius: 50%; " +
+            "-fx-min-width: 40px; -fx-min-height: 40px; " +
+            "-fx-max-width: 40px; -fx-max-height: 40px; " +
+            "-fx-cursor: hand; " +
+            "-fx-effect: dropshadow(gaussian, rgba(5, 150, 105, 0.2), 6, 0, 0, 2);"
+        ));
+
+        btnCreate.setOnAction(e -> {
+            controller.getContentArea().getChildren().clear();
+            controller.getContentArea().getChildren().add(buildForm(null));
+            controller.getContentTitleLabel().setText("Tambah Materi");
+        });
+
+        headerBox.getChildren().addAll(titleBox, btnCreate);
+
+        // Daftar Materi Tersedia
+        Label matListTitle = new Label("Daftar Materi Tersedia");
+        matListTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #1A1A1A; -fx-font-size: 15px;");
+
+        VBox matListContainer = new VBox(10);
+        matListContainer.setMaxWidth(Double.MAX_VALUE);
+
+        if (materials.isEmpty()) {
+            Label emptyLbl = new Label("Belum ada materi yang dibuat.");
+            emptyLbl.setStyle("-fx-text-fill: #6B7280; -fx-font-style: italic;");
+            matListContainer.getChildren().add(emptyLbl);
+        } else {
+            for (CourseMaterial m : materials) {
+                matListContainer.getChildren().add(buildTeacherMaterialRow(m));
+            }
         }
 
-        root.getChildren().add(cardsContainer);
-        return root;
+        leftColumn.getChildren().addAll(headerBox, matListTitle, matListContainer);
+
+        // Right side: Stats
+        VBox rightColumn = new VBox(16);
+        rightColumn.setPadding(new Insets(20));
+        rightColumn.getStyleClass().add("section-box");
+        rightColumn.setPrefWidth(320);
+        rightColumn.setMaxWidth(320);
+
+        Label statsTitle = new Label("Statistik Kelas");
+        statsTitle.getStyleClass().add("section-title");
+        statsTitle.setStyle("-fx-font-size: 15px;");
+
+        java.util.Map<String, Double> stats = controller.getDashboardService().getDashboardStats();
+        int totalStudents = stats.getOrDefault("totalStudents", 0.0).intValue();
+
+        long videoCount = materials.stream().filter(m -> "VIDEO".equals(m.getMaterialType())).count();
+        long textCount = materials.stream().filter(m -> "TEXT".equals(m.getMaterialType())).count();
+
+        rightColumn.getChildren().addAll(
+            statsTitle,
+            buildMiniStatRow("Total Materi", String.valueOf(materials.size()), "modul", "#FF7A00"),
+            buildMiniStatRow("Materi Video", String.valueOf(videoCount), "video", "#059669"),
+            buildMiniStatRow("Materi Teks", String.valueOf(textCount), "artikel", "#D97706"),
+            buildMiniStatRow("Total Siswa Terdaftar", String.valueOf(totalStudents), "siswa", "#3B82F6")
+        );
+
+        mainLayout.getChildren().addAll(leftColumn, rightColumn);
+        return mainLayout;
+    }
+
+    private HBox buildTeacherMaterialRow(CourseMaterial m) {
+        HBox row = new HBox(16);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("material-card");
+        row.setPadding(new Insets(12, 16, 12, 16));
+
+        boolean isVideo = "VIDEO".equals(m.getMaterialType());
+        Label icon = new Label(isVideo ? "▶\uFE0F" : "\uD83D\uDCC4");
+        icon.setStyle("-fx-font-size: 18px;");
+
+        VBox matInfo = new VBox(4);
+        Label titleLbl = new Label(m.getTitle());
+        titleLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #1A1A1A; -fx-font-size: 14px;");
+        Label descLbl = new Label(isVideo ? "Materi Video" : "Materi Teks");
+        descLbl.setStyle("-fx-text-fill: #6B7280; -fx-font-size: 12px;");
+        matInfo.getChildren().addAll(titleLbl, descLbl);
+        HBox.setHgrow(matInfo, Priority.ALWAYS);
+
+        Button btnEdit = new Button("Edit");
+        btnEdit.getStyleClass().addAll("btn-secondary", "btn-small");
+        btnEdit.setStyle("-fx-background-color: #D97706; -fx-text-fill: white;");
+        btnEdit.setOnAction(e -> {
+            controller.getContentArea().getChildren().clear();
+            controller.getContentArea().getChildren().add(buildForm(m));
+            controller.getContentTitleLabel().setText("Edit Materi: " + m.getTitle());
+        });
+
+        Button btnDelete = new Button("Hapus");
+        btnDelete.getStyleClass().addAll("btn-ghost", "btn-small");
+        btnDelete.setStyle("-fx-text-fill: #DC2626; -fx-border-color: #DC2626; -fx-border-radius: 4px;");
+        btnDelete.setOnAction(e -> {
+            ButtonType response = controller.showCustomAlert(
+                Alert.AlertType.CONFIRMATION,
+                "Konfirmasi Hapus",
+                "Hapus Materi?",
+                "Apakah Anda yakin ingin menghapus materi '" + m.getTitle() + "'?"
+            );
+            if (response == ButtonType.OK) {
+                controller.getMaterialService().deleteMaterial(m.getId());
+                controller.showMaterialsContent();
+            }
+        });
+
+        row.getChildren().addAll(icon, matInfo, btnEdit, btnDelete);
+        return row;
+    }
+
+    private VBox buildMiniStatRow(String label, String value, String unit, String color) {
+        VBox box = new VBox(6);
+        box.setPadding(new Insets(10, 14, 10, 14));
+        box.setStyle(
+            "-fx-background-color: #FAF8F3; -fx-background-radius: 8px; " +
+            "-fx-border-color: #E5E0D8; -fx-border-radius: 8px; -fx-border-width: 1px;"
+        );
+
+        Label lbl = new Label(label);
+        lbl.setStyle("-fx-font-size: 11px; -fx-text-fill: #6B7280; -fx-font-weight: bold;");
+
+        HBox valBox = new HBox(4);
+        valBox.setAlignment(Pos.BASELINE_LEFT);
+        Label val = new Label(value);
+        val.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + color + ";");
+        Label ut = new Label(unit);
+        ut.setStyle("-fx-font-size: 12px; -fx-text-fill: #9CA3AF;");
+        valBox.getChildren().addAll(val, ut);
+
+        box.getChildren().addAll(lbl, valBox);
+        return box;
     }
 
     private VBox buildMaterialCard(CourseMaterial material) {

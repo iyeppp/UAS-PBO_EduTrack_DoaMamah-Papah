@@ -125,8 +125,27 @@ public class QuizView {
 
         leftColumn.getChildren().addAll(headerBox, loadingBox);
 
-        // Right side: Illustration Panel
-        VBox rightColumn = buildQuizIllustrationPanel();
+        // Right side: Stats Panel
+        VBox rightColumn = new VBox(16);
+        rightColumn.setPadding(new Insets(20));
+        rightColumn.getStyleClass().add("section-box");
+        rightColumn.setPrefWidth(320);
+        rightColumn.setMaxWidth(320);
+
+        Label statsTitle = new Label("Statistik Belajarmu");
+        statsTitle.getStyleClass().add("section-title");
+        statsTitle.setStyle("-fx-font-size: 15px;");
+
+        VBox statBox1 = buildMiniStatRow("Rata-rata Nilai", "-", "poin", "#FF7A00");
+        VBox statBox2 = buildMiniStatRow("Kuis Dikerjakan", "-", "kuis", "#059669");
+        VBox statBox3 = buildMiniStatRow("Total Percobaan", "-", "kali", "#D97706");
+        
+        VBox illustration = buildQuizIllustrationPanel();
+        illustration.setPadding(new Insets(10, 0, 0, 0));
+        illustration.setPrefWidth(Region.USE_COMPUTED_SIZE);
+        illustration.setMaxWidth(Region.USE_COMPUTED_SIZE);
+
+        rightColumn.getChildren().addAll(statsTitle, statBox1, statBox2, statBox3, illustration);
 
         mainLayout.getChildren().addAll(leftColumn, rightColumn);
 
@@ -137,6 +156,26 @@ public class QuizView {
             List<QuizService.QuizAttemptData> attempts = quizService.getStudentAttempts(controller.getCurrentUser().getId());
 
             Platform.runLater(() -> {
+                double avgScore = 0;
+                java.util.Set<Long> uniqueQuizzes = new java.util.HashSet<>();
+                if (!attempts.isEmpty()) {
+                    double totalScore = 0;
+                    for (QuizService.QuizAttemptData att : attempts) {
+                        totalScore += att.getScore();
+                        uniqueQuizzes.add(att.getQuizId());
+                    }
+                    avgScore = totalScore / attempts.size();
+                }
+
+                rightColumn.getChildren().clear();
+                rightColumn.getChildren().addAll(
+                    statsTitle,
+                    buildMiniStatRow("Rata-rata Nilai", attempts.isEmpty() ? "0.0" : String.format("%.1f", avgScore), "poin", "#FF7A00"),
+                    buildMiniStatRow("Kuis Dikerjakan", String.valueOf(uniqueQuizzes.size()), "dari " + quizzes.size(), "#059669"),
+                    buildMiniStatRow("Total Percobaan", String.valueOf(attempts.size()), "kali", "#D97706"),
+                    illustration
+                );
+
                 leftColumn.getChildren().remove(loadingBox);
 
                 FlowPane quizContainer = new FlowPane();
@@ -617,7 +656,7 @@ public class QuizView {
         int initialCount = isEdit ? quizToEdit.getQuestions().size() : 3;
         cmbQuestionCount.setValue(initialCount);
         cmbQuestionCount.getStyleClass().add("input-field");
-        cmbQuestionCount.setPrefWidth(85);
+        cmbQuestionCount.setPrefWidth(150);
 
         Button btnAddQ = new Button("+ Tambah Soal");
         btnAddQ.getStyleClass().addAll("btn-secondary", "btn-small");
@@ -665,7 +704,7 @@ public class QuizView {
                 Label correctLbl = new Label("Jawaban Benar:");
                 correctLbl.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #059669;");
                 qf.correctCombo.getStyleClass().add("input-field");
-                qf.correctCombo.setPrefWidth(80);
+                qf.correctCombo.setPrefWidth(150);
                 correctRow.getChildren().addAll(correctLbl, qf.correctCombo);
 
                 singleQBox.getChildren().addAll(lblNumber, qf.questionField, optARow, optBRow, optCRow, optDRow, correctRow);
