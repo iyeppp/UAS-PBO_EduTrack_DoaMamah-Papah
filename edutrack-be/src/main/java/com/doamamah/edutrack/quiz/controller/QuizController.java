@@ -83,4 +83,58 @@ public class QuizController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
+
+    /**
+     * POST /api/quizzes/{id}/submit
+     * Menyimpan hasil pengerjaan kuis siswa.
+     */
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<?> submitQuizAttempt(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
+        try {
+            Long studentId = Long.valueOf(payload.get("studentId").toString());
+            int score = Integer.parseInt(payload.get("score").toString());
+            com.doamamah.edutrack.quiz.model.QuizAttempt attempt = quizService.submitAttempt(id, studentId, score);
+            return ResponseEntity.ok(attempt);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/quizzes/attempts
+     * Mendapatkan semua riwayat kuis siswa.
+     */
+    @GetMapping("/attempts")
+    public ResponseEntity<?> getAllAttempts() {
+        return ResponseEntity.ok(mapAttempts(quizService.getAllAttempts()));
+    }
+
+    /**
+     * GET /api/quizzes/{id}/attempts
+     * Mendapatkan riwayat siswa untuk kuis tertentu.
+     */
+    @GetMapping("/{id}/attempts")
+    public ResponseEntity<?> getAttemptsByQuiz(@PathVariable Long id) {
+        return ResponseEntity.ok(mapAttempts(quizService.getAttemptsByQuiz(id)));
+    }
+
+    /**
+     * GET /api/quizzes/student/{studentId}/attempts
+     * Mendapatkan riwayat kuis untuk siswa tertentu.
+     */
+    @GetMapping("/student/{studentId}/attempts")
+    public ResponseEntity<?> getAttemptsByStudent(@PathVariable Long studentId) {
+        return ResponseEntity.ok(mapAttempts(quizService.getAttemptsByStudent(studentId)));
+    }
+
+    private List<Map<String, Object>> mapAttempts(List<com.doamamah.edutrack.quiz.model.QuizAttempt> attempts) {
+        return attempts.stream().map(attempt -> Map.of(
+            "id", attempt.getId(),
+            "score", attempt.getScore(),
+            "attemptDate", attempt.getAttemptDate().toString(),
+            "quiz", Map.of("id", attempt.getQuiz().getId(), "title", attempt.getQuiz().getTitle()),
+            "student", Map.of("id", attempt.getStudent().getId(), "fullName", attempt.getStudent().getFullName())
+        )).toList();
+    }
 }

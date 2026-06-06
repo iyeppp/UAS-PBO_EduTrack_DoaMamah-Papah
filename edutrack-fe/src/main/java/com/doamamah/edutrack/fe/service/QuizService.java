@@ -253,4 +253,124 @@ public class QuizService {
             return null;
         }
     }
+    /**
+     * Data class untuk riwayat nilai kuis.
+     */
+    public static class QuizAttemptData {
+        private final String studentName;
+        private final String quizTitle;
+        private final int score;
+        private final String attemptDate;
+        private final long quizId;
+
+        public QuizAttemptData(String studentName, String quizTitle, int score, String attemptDate, long quizId) {
+            this.studentName = studentName;
+            this.quizTitle = quizTitle;
+            this.score = score;
+            this.attemptDate = attemptDate;
+            this.quizId = quizId;
+        }
+
+        public String getStudentName() { return studentName; }
+        public String getQuizTitle() { return quizTitle; }
+        public int getScore() { return score; }
+        public String getAttemptDate() { return attemptDate; }
+        public long getQuizId() { return quizId; }
+    }
+
+    /**
+     * Menyimpan hasil kuis siswa ke backend.
+     */
+    public boolean submitQuizScore(long quizId, long studentId, int score) {
+        try {
+            JsonObject json = new JsonObject();
+            json.addProperty("studentId", studentId);
+            json.addProperty("score", score);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BASE_URL + "/api/quizzes/" + quizId + "/submit"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(json)))
+                    .timeout(Duration.ofSeconds(5))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.statusCode() == 200;
+        } catch (Exception e) {
+            System.err.println("Gagal menyimpan nilai kuis: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Mengambil riwayat nilai kuis siswa (untuk pengajar).
+     */
+    public List<QuizAttemptData> getAllAttempts() {
+        List<QuizAttemptData> attempts = new ArrayList<>();
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BASE_URL + "/api/quizzes/attempts"))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .timeout(Duration.ofSeconds(5))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonArray array = gson.fromJson(response.body(), JsonArray.class);
+                for (int i = 0; i < array.size(); i++) {
+                    JsonObject obj = array.get(i).getAsJsonObject();
+                    String studentName = obj.getAsJsonObject("student").get("fullName").getAsString();
+                    String quizTitle = obj.getAsJsonObject("quiz").get("title").getAsString();
+                    long quizId = obj.getAsJsonObject("quiz").get("id").getAsLong();
+                    int score = obj.get("score").getAsInt();
+                    
+                    String rawDate = obj.get("attemptDate").getAsString();
+                    String formattedDate = rawDate.contains("T") ? rawDate.substring(0, 10) : rawDate;
+                    
+                    attempts.add(new QuizAttemptData(studentName, quizTitle, score, formattedDate, quizId));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Gagal mengambil riwayat kuis: " + e.getMessage());
+        }
+        return attempts;
+    }
+
+    /**
+     * Mengambil riwayat kuis untuk siswa tertentu.
+     */
+    public List<QuizAttemptData> getStudentAttempts(long studentId) {
+        List<QuizAttemptData> attempts = new ArrayList<>();
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BASE_URL + "/api/quizzes/student/" + studentId + "/attempts"))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .timeout(Duration.ofSeconds(5))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonArray array = gson.fromJson(response.body(), JsonArray.class);
+                for (int i = 0; i < array.size(); i++) {
+                    JsonObject obj = array.get(i).getAsJsonObject();
+                    String studentName = obj.getAsJsonObject("student").get("fullName").getAsString();
+                    String quizTitle = obj.getAsJsonObject("quiz").get("title").getAsString();
+                    long quizId = obj.getAsJsonObject("quiz").get("id").getAsLong();
+                    int score = obj.get("score").getAsInt();
+                    
+                    String rawDate = obj.get("attemptDate").getAsString();
+                    String formattedDate = rawDate.contains("T") ? rawDate.substring(0, 10) : rawDate;
+                    
+                    attempts.add(new QuizAttemptData(studentName, quizTitle, score, formattedDate, quizId));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Gagal mengambil riwayat kuis siswa: " + e.getMessage());
+        }
+        return attempts;
+    }
 }

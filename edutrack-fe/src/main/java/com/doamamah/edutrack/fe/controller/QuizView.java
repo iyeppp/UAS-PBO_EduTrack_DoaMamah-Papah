@@ -33,6 +33,7 @@ public class QuizView {
     // =====================================================================
 
     private String activeQuizTitle;
+    private long activeQuizId;
     private List<QuizQuestion> activeQuestions;
     private int currentQuestionIndex;
     private int correctAnswersCount;
@@ -133,6 +134,8 @@ public class QuizView {
         Thread fetchThread = new Thread(() -> {
             invalidateCache();
             List<QuizData> quizzes = getQuizzes();
+            List<QuizService.QuizAttemptData> attempts = quizService.getStudentAttempts(controller.getCurrentUser().getId());
+
             Platform.runLater(() -> {
                 leftColumn.getChildren().remove(loadingBox);
 
@@ -148,7 +151,15 @@ public class QuizView {
                     leftColumn.getChildren().add(emptyLabel);
                 } else {
                     for (QuizData q : quizzes) {
-                        VBox card = buildQuizCard(q);
+                        Integer highestScore = null;
+                        for (QuizService.QuizAttemptData att : attempts) {
+                            if (att.getQuizId() == q.getId()) {
+                                if (highestScore == null || att.getScore() > highestScore) {
+                                    highestScore = att.getScore();
+                                }
+                            }
+                        }
+                        VBox card = buildQuizCard(q, highestScore);
                         card.setPrefWidth(380);
                         card.setMinWidth(320);
                         quizContainer.getChildren().add(card);
@@ -246,6 +257,9 @@ public class QuizView {
         Thread fetchThread = new Thread(() -> {
             invalidateCache();
             List<QuizData> quizzes = getQuizzes();
+            List<QuizService.QuizAttemptData> attempts = quizService.getAllAttempts();
+            java.util.Map<String, Double> stats = controller.getDashboardService().getDashboardStats();
+
             Platform.runLater(() -> {
                 quizzesListContainer.getChildren().clear();
                 if (quizzes.isEmpty()) {
@@ -257,6 +271,33 @@ public class QuizView {
                         quizzesListContainer.getChildren().add(buildTeacherQuizRow(q));
                     }
                 }
+
+                resultsContainer.getChildren().clear();
+                if (attempts.isEmpty()) {
+                    resultsContainer.getChildren().add(emptyResultsLbl);
+                } else {
+                    for (QuizService.QuizAttemptData attempt : attempts) {
+                        resultsContainer.getChildren().add(buildStudentResultItem(
+                            attempt.getStudentName(),
+                            attempt.getQuizTitle(),
+                            attempt.getScore(),
+                            attempt.getAttemptDate()
+                        ));
+                    }
+                }
+
+                // Update Stats
+                double avgScore = stats.getOrDefault("averageQuizScore", 0.0);
+                double partRate = stats.getOrDefault("participationRate", 0.0);
+                int totalAtt = stats.getOrDefault("totalQuizAttempts", 0.0).intValue();
+
+                rightColumn.getChildren().clear();
+                rightColumn.getChildren().addAll(
+                    statsTitle,
+                    buildMiniStatRow("Rata-rata Nilai", String.format("%.1f", avgScore), "poin", "#FF7A00"),
+                    buildMiniStatRow("Partisipasi Siswa", String.format("%.1f", partRate), "%", "#059669"),
+                    buildMiniStatRow("Total Percobaan", String.valueOf(totalAtt), "kali", "#D97706")
+                );
             });
         });
         fetchThread.setDaemon(true);
@@ -269,7 +310,7 @@ public class QuizView {
     //  UI BUILDER METHODS
     // =====================================================================
 
-    private VBox buildQuizCard(QuizData quiz) {
+    private VBox buildQuizCard(QuizData quiz, Integer highestScore) {
         VBox card = new VBox(12);
         card.getStyleClass().add("material-card");
         card.setPadding(new Insets(20));
@@ -281,6 +322,20 @@ public class QuizView {
         Label diffLabel = new Label(quiz.getDifficulty());
         diffLabel.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: " + quiz.getColor() + ";");
         top.getChildren().addAll(dot, diffLabel);
+
+        if (highestScore != null) {
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+            
+            Label scoreBadge = new Label("Nilai: " + highestScore);
+            String badgeColor = highestScore >= 80 ? "#059669" : (highestScore >= 60 ? "#D97706" : "#DC2626");
+            String badgeBg = highestScore >= 80 ? "#ECFDF5" : (highestScore >= 60 ? "#FFFBEA" : "#FEF2F2");
+            scoreBadge.setStyle(
+                "-fx-background-color: " + badgeBg + "; -fx-text-fill: " + badgeColor + "; " +
+                "-fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 4px 10px; -fx-background-radius: 12px;"
+            );
+            top.getChildren().addAll(spacer, scoreBadge);
+        }
 
         Label titleL = new Label(quiz.getTitle());
         titleL.getStyleClass().add("card-title");
@@ -298,7 +353,7 @@ public class QuizView {
         int questionCount = quiz.getQuestions() != null ? quiz.getQuestions().size() : 0;
         int minutes = "Mudah".equals(quiz.getDifficulty()) ? 5 : 8;
 
-        Button startBtn = new Button("Mulai Kuis");
+        Button startBtn = new Button(highestScore != null ? "Perbaiki Nilai" : "Mulai Kuis");
         startBtn.getStyleClass().addAll("btn-primary", "btn-small");
         startBtn.setOnAction(e -> startQuizGameplay(quiz));
 
@@ -799,6 +854,7 @@ public class QuizView {
 
     private void startQuizGameplay(QuizData quiz) {
         activeQuizTitle = quiz.getTitle();
+        activeQuizId = quiz.getId();
         currentQuestionIndex = 0;
         correctAnswersCount = 0;
         selectedOptionIndex = -1;
@@ -1173,6 +1229,11 @@ public class QuizView {
         }
 
         int score = (int) Math.round((double) correctAnswersCount * 100.0 / activeQuestions.size());
+
+        // Simpan nilai ke backend
+        new Thread(() -> {
+            quizService.submitQuizScore(activeQuizId, controller.getCurrentUser().getId(), score);
+        }).start();
 
         Label congratLabel = new Label(score >= 60 ? "Selamat! Kuis Selesai!" : "Kuis Selesai!");
         congratLabel.getStyleClass().add("banner-title");

@@ -71,8 +71,8 @@ public class MaterialService {
         } catch (Exception e) {
             System.err.println("Backend tidak tersedia, menggunakan data demo: " + e.getMessage());
         }
-        // Fallback: data dummy untuk keperluan demo/testing
-        return getDummyMaterials();
+        // Jika gagal, kembalikan list kosong tanpa dummy data
+        return new ArrayList<>();
     }
 
     /**
@@ -166,73 +166,7 @@ public class MaterialService {
         }
     }
 
-    /**
-     * Data dummy untuk demo ketika backend tidak tersedia.
-     */
-    public List<CourseMaterial> getDummyMaterials() {
-        List<CourseMaterial> dummies = new ArrayList<>();
 
-        dummies.add(new VideoMaterial(
-            1L,
-            "Pengantar Pemrograman Berorientasi Objek",
-            "Pengantar konsep-konsep dasar OOP: kelas, objek, enkapsulasi, dan lebih banyak lagi.",
-            "https://www.youtube.com/watch?v=grEKMHGYyns",
-            45
-        ));
-
-        dummies.add(new TextMaterial(
-            2L,
-            "Konsep Inheritance dalam Java",
-            "Penjelasan lengkap tentang pewarisan (inheritance) di Java dengan contoh nyata.",
-            "Inheritance (Pewarisan) adalah salah satu pilar utama OOP.\n\n"
-            + "Dalam Java, kelas dapat mewarisi properti dan metode dari kelas lain menggunakan "
-            + "kata kunci 'extends'.\n\n"
-            + "Contoh:\n"
-            + "public class Hewan {\n"
-            + "    private String nama;\n"
-            + "    public void bersuara() { System.out.println(\"...\"); }\n"
-            + "}\n\n"
-            + "public class Anjing extends Hewan {\n"
-            + "    @Override\n"
-            + "    public void bersuara() { System.out.println(\"Guk!\"); }\n"
-            + "}\n\n"
-            + "Dengan inheritance, kelas Anjing mewarisi semua anggota dari Hewan dan "
-            + "dapat meng-override perilaku yang perlu diubah.\n\n"
-            + "Keuntungan Inheritance:\n"
-            + "1. Reusability - kode dapat digunakan kembali\n"
-            + "2. Extendability - mudah dikembangkan\n"
-            + "3. Polymorphism - mendukung polimorfisme\n"
-        ));
-
-        dummies.add(new VideoMaterial(
-            3L,
-            "Polymorphism dan Dynamic Dispatch",
-            "Memahami polimorfisme di Java melalui method overriding dan dynamic dispatch.",
-            "https://www.youtube.com/watch?v=U8yjyEs40gI",
-            60
-        ));
-
-        dummies.add(new TextMaterial(
-            4L,
-            "Abstraksi dengan Abstract Class & Interface",
-            "Pelajari cara menggunakan abstract class dan interface untuk menerapkan abstraksi.",
-            "Abstraksi adalah konsep menyembunyikan detail implementasi dan hanya menampilkan "
-            + "fungsionalitas yang relevan kepada pengguna.\n\n"
-            + "Di Java, abstraksi dapat dicapai dengan:\n"
-            + "1. Abstract Class\n"
-            + "2. Interface\n\n"
-            + "Abstract Class:\n"
-            + "- Tidak dapat diinstansiasi langsung\n"
-            + "- Dapat memiliki metode abstrak dan non-abstrak\n"
-            + "- Gunakan kata kunci 'abstract'\n\n"
-            + "Interface:\n"
-            + "- Semua metode secara default adalah abstrak (sebelum Java 8)\n"
-            + "- Dapat memiliki default methods (Java 8+)\n"
-            + "- Satu kelas dapat mengimplementasikan banyak interface\n"
-        ));
-
-        return dummies;
-    }
 
     /**
      * Memperbarui materi yang sudah ada dalam cache lokal dan mengirimkan request ke backend.

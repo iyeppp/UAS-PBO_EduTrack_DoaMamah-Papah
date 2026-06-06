@@ -2,6 +2,7 @@ package com.doamamah.edutrack.auth.repository;
 
 import com.doamamah.edutrack.auth.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -17,4 +18,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Digunakan saat proses login.
      */
     Optional<User> findByUsername(String username);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE TYPE(u) = Student")
+    long countStudents();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE TYPE(u) = Teacher")
+    long countTeachers();
 }

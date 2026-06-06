@@ -18,7 +18,6 @@ import java.util.ResourceBundle;
 
 /**
  * LoginController - Controller untuk halaman Login, Register, dan Lupa Password.
- * Mendukung mode ONLINE (backend) dan mode DEMO (hardcoded).
  */
 public class LoginController implements Initializable {
 
@@ -44,12 +43,6 @@ public class LoginController implements Initializable {
     @FXML private TextField forgotEmailField;
 
     private final AuthService authService = new AuthService();
-
-    // Demo Kredensial
-    private static final String DEMO_STUDENT_USER = "siswa";
-    private static final String DEMO_STUDENT_PASS = "123";
-    private static final String DEMO_TEACHER_USER = "guru";
-    private static final String DEMO_TEACHER_PASS = "123";
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -132,13 +125,6 @@ public class LoginController implements Initializable {
         if (password.isEmpty()) {
             showError("Password tidak boleh kosong.");
             passwordField.requestFocus();
-            return;
-        }
-
-        User demoUser = checkDemoCredentials(username, password);
-        if (demoUser != null) {
-            SceneManager.getInstance().setCurrentUser(demoUser);
-            SceneManager.getInstance().showDashboard();
             return;
         }
 
@@ -234,22 +220,7 @@ public class LoginController implements Initializable {
     //  HELPERS
     // =====================================================================
 
-    private User checkDemoCredentials(String username, String password) {
-        if (DEMO_STUDENT_USER.equalsIgnoreCase(username)
-                && DEMO_STUDENT_PASS.equals(password)) {
-            Student s = new Student(1L, "siswa", "Budi Santoso", "budi@demo.com", "STD001");
-            s.setEnrolledCourses(4);
-            return s;
-        }
-        if (DEMO_TEACHER_USER.equalsIgnoreCase(username)
-                && DEMO_TEACHER_PASS.equals(password)) {
-            Teacher t = new Teacher(2L, "guru", "Ibu Sari Dewi", "sari@demo.com",
-                    "TCH001", "Pemrograman Java");
-            t.setTotalCourses(4);
-            return t;
-        }
-        return null;
-    }
+
 
     private void showError(String message) {
         errorLabel.setText("⚠  " + message);

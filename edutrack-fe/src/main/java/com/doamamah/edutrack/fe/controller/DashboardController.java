@@ -40,6 +40,7 @@ public class DashboardController implements Initializable {
     @FXML private ScrollPane contentScrollPane;
 
     private final MaterialService materialService = new MaterialService();
+    private final com.doamamah.edutrack.fe.service.DashboardService dashboardService = new com.doamamah.edutrack.fe.service.DashboardService();
     private final AuthService authService = new AuthService();
     private User currentUser;
 
@@ -49,6 +50,7 @@ public class DashboardController implements Initializable {
 
     public User getCurrentUser() { return currentUser; }
     public MaterialService getMaterialService() { return materialService; }
+    public com.doamamah.edutrack.fe.service.DashboardService getDashboardService() { return dashboardService; }
     public VBox getContentArea() { return contentArea; }
     public Label getContentTitleLabel() { return contentTitleLabel; }
 

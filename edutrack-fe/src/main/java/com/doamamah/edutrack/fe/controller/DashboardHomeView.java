@@ -70,45 +70,55 @@ public class DashboardHomeView {
             banner.getChildren().add(bannerText);
         }
 
-        // Statistik Grid 3 kolom
+        // Fetch dynamic stats from backend
+        java.util.Map<String, Double> stats = controller.getDashboardService().getDashboardStats();
+        int totalMaterials = stats.getOrDefault("totalMaterials", 0.0).intValue();
+        int totalQuizzes = stats.getOrDefault("totalQuizzes", 0.0).intValue();
+        int totalStudents = stats.getOrDefault("totalStudents", 0.0).intValue();
+        int totalAttempts = stats.getOrDefault("totalQuizAttempts", 0.0).intValue();
+        double avgScore = stats.getOrDefault("averageQuizScore", 0.0);
+
         HBox statsRow = new HBox(14);
         statsRow.setMaxWidth(Double.MAX_VALUE);
-        int totalMaterials = controller.getMaterialService().getAllMaterials().size();
 
         if (currentUser instanceof Student) {
             statsRow.getChildren().addAll(
                 buildRichStatCard("Materi Tersedia", String.valueOf(totalMaterials), "materi", "#FF7A00", "📚", 1.0),
-                buildRichStatCard("Kuis Aktif",      "2", "kuis",   "#059669", "📝", 0.5),
-                buildRichStatCard("Progress Belajar","65", "%",      "#D97706", "🎯", 0.65)
+                buildRichStatCard("Kuis Tersedia",   String.valueOf(totalQuizzes), "kuis",   "#059669", "📝", 1.0),
+                buildRichStatCard("Rata-rata Nilai", String.format("%.1f", avgScore), "poin", "#D97706", "🎯", avgScore/100.0)
             );
         } else {
             statsRow.getChildren().addAll(
                 buildRichStatCard("Total Materi",  String.valueOf(totalMaterials),  "materi", "#FF7A00", "📚", 1.0),
-                buildRichStatCard("Total Siswa",   "24", "siswa",  "#059669", "👥", 0.7),
-                buildRichStatCard("Kuis Dibuat",   "3",  "kuis",   "#D97706", "📝", 0.6)
+                buildRichStatCard("Total Siswa",   String.valueOf(totalStudents), "siswa",  "#059669", "👥", 1.0),
+                buildRichStatCard("Kuis Dibuat",   String.valueOf(totalQuizzes),  "kuis",   "#D97706", "📝", 1.0)
             );
         }
 
-        // Progress Belajar Hari Ini
+        // Progress Belajar Hari Ini (Sekarang menggunakan total percobaan kuis sebagai metrik keaktifan)
         VBox progressSection = new VBox(10);
         progressSection.getStyleClass().add("section-box");
         progressSection.setPadding(new Insets(20));
 
-        Label progressTitle = new Label("Progress Hari Ini");
+        Label progressTitle = new Label("Aktivitas Pembelajaran (Kuis)");
         progressTitle.getStyleClass().add("section-title");
 
-        ProgressBar dailyBar = new ProgressBar(0.65);
+        double maxExpectedAttempts = totalStudents * totalQuizzes;
+        double progressRatio = maxExpectedAttempts > 0 ? (double)totalAttempts / maxExpectedAttempts : 0.0;
+        if (progressRatio > 1.0) progressRatio = 1.0;
+
+        ProgressBar dailyBar = new ProgressBar(progressRatio);
         dailyBar.setMaxWidth(Double.MAX_VALUE);
         dailyBar.setPrefHeight(10);
         dailyBar.getStyleClass().add("daily-progress");
 
         HBox progressInfo = new HBox();
         progressInfo.setAlignment(Pos.CENTER_LEFT);
-        Label pLeft = new Label("3 dari 5 materi selesai");
+        Label pLeft = new Label(totalAttempts + " dari " + (int)maxExpectedAttempts + " percobaan kuis selesai");
         pLeft.getStyleClass().add("progress-info");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        Label pRight = new Label("65%");
+        Label pRight = new Label(String.format("%.1f%%", progressRatio * 100));
         pRight.getStyleClass().add("progress-percent");
         progressInfo.getChildren().addAll(pLeft, spacer, pRight);
 

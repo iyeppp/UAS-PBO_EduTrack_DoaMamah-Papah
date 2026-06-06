@@ -15,9 +15,15 @@ import java.util.Optional;
 public class QuizService {
 
     private final QuizRepository quizRepository;
+    private final com.doamamah.edutrack.quiz.repository.QuizAttemptRepository attemptRepository;
+    private final com.doamamah.edutrack.auth.repository.UserRepository userRepository;
 
-    public QuizService(QuizRepository quizRepository) {
+    public QuizService(QuizRepository quizRepository, 
+                       com.doamamah.edutrack.quiz.repository.QuizAttemptRepository attemptRepository,
+                       com.doamamah.edutrack.auth.repository.UserRepository userRepository) {
         this.quizRepository = quizRepository;
+        this.attemptRepository = attemptRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -78,5 +84,49 @@ public class QuizService {
             throw new RuntimeException("Kuis dengan ID " + id + " tidak ditemukan.");
         }
         quizRepository.deleteById(id);
+    }
+
+    /**
+     * Menyimpan skor kuis siswa.
+     */
+    public com.doamamah.edutrack.quiz.model.QuizAttempt submitAttempt(Long quizId, Long studentId, int score) {
+        com.doamamah.edutrack.quiz.model.Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Kuis tidak ditemukan"));
+        com.doamamah.edutrack.auth.model.User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Siswa tidak ditemukan"));
+
+        List<com.doamamah.edutrack.quiz.model.QuizAttempt> existingAttempts = attemptRepository.findByStudentId(studentId);
+        for (com.doamamah.edutrack.quiz.model.QuizAttempt attempt : existingAttempts) {
+            if (attempt.getQuiz().getId().equals(quizId)) {
+                // Perbarui nilai jika kuis yang sama dikerjakan ulang
+                attempt.setScore(score);
+                attempt.setAttemptDate(java.time.LocalDateTime.now());
+                return attemptRepository.save(attempt);
+            }
+        }
+
+        com.doamamah.edutrack.quiz.model.QuizAttempt attempt = new com.doamamah.edutrack.quiz.model.QuizAttempt(quiz, student, score, java.time.LocalDateTime.now());
+        return attemptRepository.save(attempt);
+    }
+
+    /**
+     * Mengambil riwayat skor kuis berdasarkan kuis (untuk guru).
+     */
+    public List<com.doamamah.edutrack.quiz.model.QuizAttempt> getAttemptsByQuiz(Long quizId) {
+        return attemptRepository.findByQuizIdOrderByAttemptDateDesc(quizId);
+    }
+
+    /**
+     * Mengambil semua riwayat skor (untuk guru).
+     */
+    public List<com.doamamah.edutrack.quiz.model.QuizAttempt> getAllAttempts() {
+        return attemptRepository.findAllByOrderByAttemptDateDesc();
+    }
+
+    /**
+     * Mengambil riwayat skor kuis berdasarkan ID siswa.
+     */
+    public List<com.doamamah.edutrack.quiz.model.QuizAttempt> getAttemptsByStudent(Long studentId) {
+        return attemptRepository.findByStudentId(studentId);
     }
 }
