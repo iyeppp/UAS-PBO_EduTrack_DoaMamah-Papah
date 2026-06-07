@@ -31,6 +31,10 @@ public class CourseMaterial {
     @Column(columnDefinition = "CLOB")
     private String textContent;
 
+    // Tambahan File Upload
+    private String attachmentFileName;
+    private String attachmentUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id")
     private Teacher teacher;
@@ -39,13 +43,16 @@ public class CourseMaterial {
     public CourseMaterial() {}
 
     public CourseMaterial(String title, String description, String type,
-                          String videoUrl, int durationMinutes, String textContent) {
+                          String videoUrl, int durationMinutes, String textContent,
+                          String attachmentFileName, String attachmentUrl) {
         this.title = title;
         this.description = description;
         this.type = type;
         this.videoUrl = videoUrl;
         this.durationMinutes = durationMinutes;
         this.textContent = textContent;
+        this.attachmentFileName = attachmentFileName;
+        this.attachmentUrl = attachmentUrl;
     }
 
     // --- GETTERS ---
@@ -57,6 +64,8 @@ public class CourseMaterial {
     public String getVideoUrl() { return videoUrl; }
     public int getDurationMinutes() { return durationMinutes; }
     public String getTextContent() { return textContent; }
+    public String getAttachmentFileName() { return attachmentFileName; }
+    public String getAttachmentUrl() { return attachmentUrl; }
     public Teacher getTeacher() { return teacher; }
 
     // --- SETTERS ---
@@ -68,5 +77,7 @@ public class CourseMaterial {
     public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
     public void setDurationMinutes(int durationMinutes) { this.durationMinutes = durationMinutes; }
     public void setTextContent(String textContent) { this.textContent = textContent; }
+    public void setAttachmentFileName(String attachmentFileName) { this.attachmentFileName = attachmentFileName; }
+    public void setAttachmentUrl(String attachmentUrl) { this.attachmentUrl = attachmentUrl; }
     public void setTeacher(Teacher teacher) { this.teacher = teacher; }
 }

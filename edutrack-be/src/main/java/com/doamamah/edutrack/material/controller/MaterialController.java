@@ -1,10 +1,13 @@
 package com.doamamah.edutrack.material.controller;
 
 import com.doamamah.edutrack.material.model.CourseMaterial;
+import com.doamamah.edutrack.material.service.FileStorageService;
 import com.doamamah.edutrack.material.service.MaterialService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.HashMap;
 import java.util.List;
@@ -20,9 +23,30 @@ import java.util.stream.Collectors;
 public class MaterialController {
 
     private final MaterialService materialService;
+    private final FileStorageService fileStorageService;
 
-    public MaterialController(MaterialService materialService) {
+    public MaterialController(MaterialService materialService, FileStorageService fileStorageService) {
         this.materialService = materialService;
+        this.fileStorageService = fileStorageService;
+    }
+
+    /**
+     * POST /api/materials/upload
+     * Mengunggah file attachment untuk materi.
+     */
+    @PostMapping("/upload")
+    public ResponseEntity<Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file) {
+        String fileName = fileStorageService.storeFile(file);
+        String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/uploads/")
+                .path(fileName)
+                .toUriString();
+
+        Map<String, String> response = new HashMap<>();
+        response.put("fileName", fileName);
+        response.put("fileUrl", fileDownloadUri);
+
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -81,6 +105,9 @@ public class MaterialController {
             material.setDurationMinutes(((Number) body.get("durationMinutes")).intValue());
         }
         if (body.containsKey("textContent")) material.setTextContent((String) body.get("textContent"));
+        
+        if (body.containsKey("attachmentFileName")) material.setAttachmentFileName((String) body.get("attachmentFileName"));
+        if (body.containsKey("attachmentUrl")) material.setAttachmentUrl((String) body.get("attachmentUrl"));
 
         Long teacherId = body.containsKey("teacherId") && body.get("teacherId") != null
                 ? ((Number) body.get("teacherId")).longValue() : null;
@@ -154,6 +181,8 @@ public class MaterialController {
         map.put("videoUrl", m.getVideoUrl());
         map.put("durationMinutes", m.getDurationMinutes());
         map.put("textContent", m.getTextContent());
+        map.put("attachmentFileName", m.getAttachmentFileName());
+        map.put("attachmentUrl", m.getAttachmentUrl());
 
         if (m.getTeacher() != null) {
             map.put("teacherId", m.getTeacher().getId());
