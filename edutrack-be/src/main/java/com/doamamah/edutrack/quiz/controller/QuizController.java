@@ -143,12 +143,64 @@ public class QuizController {
         try {
             Long studentId = Long.valueOf(payload.get("studentId").toString());
             int score = Integer.parseInt(payload.get("score").toString());
-            com.doamamah.edutrack.quiz.model.QuizAttempt attempt = quizService.submitAttempt(id, studentId, score);
+            List<Integer> answers = null;
+            if (payload.containsKey("answers") && payload.get("answers") instanceof List<?> answersList) {
+                answers = answersList.stream()
+                        .filter(n -> n instanceof Number)
+                        .map(n -> ((Number) n).intValue())
+                        .toList();
+            }
+            com.doamamah.edutrack.quiz.model.QuizAttempt attempt = quizService.submitAttempt(id, studentId, score, answers);
             return ResponseEntity.ok(attempt);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /**
+     * GET /api/quizzes/{quizId}/student/{studentId}/attempt
+     * Mengambil percobaan kuis terakhir untuk siswa tertentu.
+     */
+    @GetMapping("/{quizId}/student/{studentId}/attempt")
+    public ResponseEntity<?> getAttemptByQuizAndStudent(@PathVariable Long quizId, @PathVariable Long studentId) {
+        return quizService.getAttemptByQuizAndStudent(quizId, studentId)
+                .map(attempt -> ResponseEntity.ok(Map.<String, Object>of(
+                        "id", attempt.getId(),
+                        "score", attempt.getScore(),
+                        "attemptDate", attempt.getAttemptDate().toString(),
+                        "answers", parseAnswersJson(attempt.getAnswersJson()),
+                        "quiz", Map.of("id", attempt.getQuiz().getId(), "title", attempt.getQuiz().getTitle()),
+                        "student", Map.of("id", attempt.getStudent().getId(), "fullName", attempt.getStudent().getFullName())
+                )))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Attempt tidak ditemukan untuk siswa/kuis tersebut.")));
+    }
+
+    private List<Integer> parseAnswersJson(String answersJson) {
+        if (answersJson == null || answersJson.isBlank()) {
+            return List.of();
+        }
+        String trimmed = answersJson.trim();
+        if (trimmed.startsWith("[")) {
+            trimmed = trimmed.substring(1);
+        }
+        if (trimmed.endsWith("]")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        if (trimmed.isBlank()) {
+            return List.of();
+        }
+        String[] pieces = trimmed.split(",");
+        List<Integer> result = new ArrayList<>();
+        for (String piece : pieces) {
+            try {
+                result.add(Integer.parseInt(piece.trim()));
+            } catch (NumberFormatException ex) {
+                result.add(-1);
+            }
+        }
+        return result;
     }
 
     /**
