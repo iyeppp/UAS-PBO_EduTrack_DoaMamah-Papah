@@ -26,16 +26,20 @@ public class QuizAttempt {
     @Column(nullable = false)
     private int score;
 
+    @Column(name = "answers_json", columnDefinition = "CLOB")
+    private String answersJson;
+
     @Column(name = "attempt_date", nullable = false)
     private LocalDateTime attemptDate;
 
     public QuizAttempt() {
     }
 
-    public QuizAttempt(Quiz quiz, User student, int score, LocalDateTime attemptDate) {
+    public QuizAttempt(Quiz quiz, User student, int score, String answersJson, LocalDateTime attemptDate) {
         this.quiz = quiz;
         this.student = student;
         this.score = score;
+        this.answersJson = answersJson;
         this.attemptDate = attemptDate;
     }
 
@@ -69,6 +73,14 @@ public class QuizAttempt {
 
     public void setScore(int score) {
         this.score = score;
+    }
+
+    public String getAnswersJson() {
+        return answersJson;
+    }
+
+    public void setAnswersJson(String answersJson) {
+        this.answersJson = answersJson;
     }
 
     public LocalDateTime getAttemptDate() {

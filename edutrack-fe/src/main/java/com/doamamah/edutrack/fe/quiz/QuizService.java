@@ -2,6 +2,7 @@ package com.doamamah.edutrack.fe.quiz;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.net.URI;
@@ -303,14 +304,26 @@ public class QuizService {
         public long getQuizId() { return quizId; }
     }
 
+    private JsonArray buildAnswersArray(int[] answers) {
+        JsonArray array = new JsonArray();
+        if (answers == null) {
+            return array;
+        }
+        for (int value : answers) {
+            array.add(value);
+        }
+        return array;
+    }
+
     /**
      * Menyimpan hasil kuis siswa ke backend.
      */
-    public boolean submitQuizScore(long quizId, long studentId, int score) {
+    public boolean submitQuizScore(long quizId, long studentId, int score, int[] answers) {
         try {
             JsonObject json = new JsonObject();
             json.addProperty("studentId", studentId);
             json.addProperty("score", score);
+            json.add("answers", buildAnswersArray(answers));
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(BASE_URL + "/api/quizzes/" + quizId + "/submit"))
@@ -325,6 +338,104 @@ public class QuizService {
             System.err.println("Gagal menyimpan nilai kuis: " + e.getMessage());
             return false;
         }
+    }
+
+    public boolean submitQuizScore(long quizId, long studentId, int score) {
+        return submitQuizScore(quizId, studentId, score, null);
+    }
+
+    private int[] parseAnswersJson(String json) {
+        if (json == null || json.isBlank()) {
+            return new int[0];
+        }
+        JsonElement answersElement = gson.fromJson(json, JsonElement.class);
+        if (answersElement.isJsonArray()) {
+            JsonArray array = answersElement.getAsJsonArray();
+            int[] result = new int[array.size()];
+            for (int i = 0; i < array.size(); i++) {
+                try {
+                    result[i] = array.get(i).getAsInt();
+                } catch (Exception ex) {
+                    result[i] = -1;
+                }
+            }
+            return result;
+        }
+        String trimmed = json.trim();
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+        }
+        if (trimmed.startsWith("[")) {
+            trimmed = trimmed.substring(1);
+        }
+        if (trimmed.endsWith("]")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        if (trimmed.isBlank()) {
+            return new int[0];
+        }
+        String[] pieces = trimmed.split(",");
+        int[] result = new int[pieces.length];
+        for (int i = 0; i < pieces.length; i++) {
+            try {
+                result[i] = Integer.parseInt(pieces[i].trim());
+            } catch (NumberFormatException ex) {
+                result[i] = -1;
+            }
+        }
+        return result;
+    }
+
+    public static class QuizAttemptReviewData {
+        private final int score;
+        private final int[] answers;
+        private final long quizId;
+
+        public QuizAttemptReviewData(int score, int[] answers, long quizId) {
+            this.score = score;
+            this.answers = answers;
+            this.quizId = quizId;
+        }
+
+        public int getScore() { return score; }
+        public int[] getAnswers() { return answers; }
+        public long getQuizId() { return quizId; }
+    }
+
+    public QuizAttemptReviewData getAttemptReview(long quizId, long studentId) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BASE_URL + "/api/quizzes/" + quizId + "/student/" + studentId + "/attempt"))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .timeout(Duration.ofSeconds(5))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                JsonObject obj = gson.fromJson(response.body(), JsonObject.class);
+                int score = obj.has("score") ? obj.get("score").getAsInt() : 0;
+                int[] answers;
+                if (obj.has("answers") && !obj.get("answers").isJsonNull()) {
+                    JsonElement answersElement = obj.get("answers");
+                    if (answersElement.isJsonArray()) {
+                        JsonArray array = answersElement.getAsJsonArray();
+                        answers = new int[array.size()];
+                        for (int i = 0; i < array.size(); i++) {
+                            answers[i] = array.get(i).getAsInt();
+                        }
+                    } else {
+                        answers = parseAnswersJson(answersElement.toString());
+                    }
+                } else {
+                    answers = new int[0];
+                }
+                return new QuizAttemptReviewData(score, answers, quizId);
+            }
+        } catch (Exception e) {
+            System.err.println("Gagal mengambil review percobaan kuis: " + e.getMessage());
+        }
+        return null;
     }
 
     /**

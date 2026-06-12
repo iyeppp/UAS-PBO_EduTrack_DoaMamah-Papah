@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import com.doamamah.edutrack.auth.model.Teacher;
 
 /**
@@ -87,7 +88,7 @@ public class QuizService {
     }
 
     /**
-     * Memperbarui kuis yang sudah ada.
+     * Mengupdate kuis yang sudah ada.
      */
     public Quiz updateQuiz(Long id, Quiz updatedData) {
         Quiz existing = quizRepository.findById(id)
@@ -107,6 +108,15 @@ public class QuizService {
         }
 
         return quizRepository.save(existing);
+    }
+
+    private String serializeAnswerList(List<Integer> answers) {
+        if (answers == null) {
+            return null;
+        }
+        return answers.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(",", "[", "]"));
     }
 
     /**
@@ -129,24 +139,34 @@ public class QuizService {
     /**
      * Menyimpan skor kuis siswa.
      */
-    public com.doamamah.edutrack.quiz.model.QuizAttempt submitAttempt(Long quizId, Long studentId, int score) {
+    public com.doamamah.edutrack.quiz.model.QuizAttempt submitAttempt(Long quizId, Long studentId, int score, List<Integer> answers) {
         com.doamamah.edutrack.quiz.model.Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new RuntimeException("Kuis tidak ditemukan"));
         com.doamamah.edutrack.auth.model.User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Siswa tidak ditemukan"));
 
-        List<com.doamamah.edutrack.quiz.model.QuizAttempt> existingAttempts = attemptRepository.findByStudentId(studentId);
-        for (com.doamamah.edutrack.quiz.model.QuizAttempt attempt : existingAttempts) {
-            if (attempt.getQuiz().getId().equals(quizId)) {
-                // Perbarui nilai jika kuis yang sama dikerjakan ulang
-                attempt.setScore(score);
-                attempt.setAttemptDate(java.time.LocalDateTime.now());
-                return attemptRepository.save(attempt);
-            }
+        String answersJson = serializeAnswerList(answers);
+        Optional<com.doamamah.edutrack.quiz.model.QuizAttempt> existingAttempt = attemptRepository.findByQuizIdAndStudentId(quizId, studentId);
+
+        if (existingAttempt.isPresent()) {
+            com.doamamah.edutrack.quiz.model.QuizAttempt attempt = existingAttempt.get();
+            attempt.setScore(score);
+            attempt.setAnswersJson(answersJson);
+            attempt.setAttemptDate(java.time.LocalDateTime.now());
+            return attemptRepository.save(attempt);
         }
 
-        com.doamamah.edutrack.quiz.model.QuizAttempt attempt = new com.doamamah.edutrack.quiz.model.QuizAttempt(quiz, student, score, java.time.LocalDateTime.now());
+        com.doamamah.edutrack.quiz.model.QuizAttempt attempt = new com.doamamah.edutrack.quiz.model.QuizAttempt(
+                quiz, student, score, answersJson, java.time.LocalDateTime.now());
         return attemptRepository.save(attempt);
+    }
+
+    public com.doamamah.edutrack.quiz.model.QuizAttempt submitAttempt(Long quizId, Long studentId, int score) {
+        return submitAttempt(quizId, studentId, score, null);
+    }
+
+    public Optional<com.doamamah.edutrack.quiz.model.QuizAttempt> getAttemptByQuizAndStudent(Long quizId, Long studentId) {
+        return attemptRepository.findByQuizIdAndStudentId(quizId, studentId);
     }
 
     /**

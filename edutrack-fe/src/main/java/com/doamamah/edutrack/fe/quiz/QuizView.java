@@ -476,13 +476,34 @@ public class QuizView {
         startBtn.getStyleClass().addAll("btn-primary", "btn-small");
         startBtn.setOnAction(e -> startQuizGameplay(quiz));
 
+        actions.getChildren().add(startBtn);
+
+        if (highestScore != null) {
+            Button reviewBtn = new Button("Review Kuis");
+            reviewBtn.getStyleClass().addAll("btn-secondary", "btn-small");
+            reviewBtn.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #111827; -fx-border-color: #D1D5DB; -fx-border-radius: 8px;");
+            reviewBtn.setOnAction(e -> {
+                new Thread(() -> {
+                    QuizService.QuizAttemptReviewData reviewData = quizService.getAttemptReview(quiz.getId(), controller.getCurrentUser().getId());
+                    Platform.runLater(() -> {
+                        if (reviewData == null) {
+                            controller.showCustomAlert(Alert.AlertType.ERROR, "Gagal Mengambil Review", "Tidak dapat memuat review kuis.", "Silakan coba lagi nanti.");
+                            return;
+                        }
+                        showQuizReview(quiz, reviewData);
+                    });
+                }).start();
+            });
+            actions.getChildren().add(reviewBtn);
+        }
+
         Label quizMeta = new Label(questionCount + " Soal  ·  " + minutes + " mnt");
         quizMeta.getStyleClass().add("progress-info");
         quizMeta.setStyle("-fx-font-weight: bold; -fx-text-fill: #FF7A00;");
 
         Region spc = new Region();
         HBox.setHgrow(spc, Priority.ALWAYS);
-        actions.getChildren().addAll(quizMeta, spc, startBtn);
+        actions.getChildren().addAll(spc, quizMeta);
 
         card.getChildren().addAll(top, titleL, descL, teacherRow, div, actions);
         return card;
@@ -1370,9 +1391,9 @@ public class QuizView {
 
         int score = (int) Math.round((double) correctAnswersCount * 100.0 / activeQuestions.size());
 
-        // Simpan nilai ke backend
+        // Simpan nilai dan jawaban ke backend
         new Thread(() -> {
-            quizService.submitQuizScore(activeQuizId, controller.getCurrentUser().getId(), score);
+            quizService.submitQuizScore(activeQuizId, controller.getCurrentUser().getId(), score, userAnswers);
         }).start();
 
         Label congratLabel = new Label(score >= 60 ? "Selamat! Kuis Selesai!" : "Kuis Selesai!");
@@ -1411,14 +1432,208 @@ public class QuizView {
         backBtn.getStyleClass().addAll("btn-primary", "btn-large");
         backBtn.setOnAction(e -> controller.showQuizContent());
 
-        if (celebrationMascot != null) {
-            resultBox.getChildren().addAll(celebrationMascot, congratLabel, scoreBox, scoreBar, commentLabel, backBtn);
-        } else {
-            resultBox.getChildren().addAll(congratLabel, scoreBox, scoreBar, commentLabel, backBtn);
+        // ── REVIEW JAWABAN ──────────────────────────────────────────────
+        Label reviewTitle = new Label("Review Jawaban");
+        reviewTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #FF7A00;");
+
+        VBox reviewBox = new VBox(12);
+        reviewBox.setAlignment(Pos.TOP_LEFT);
+        reviewBox.setMaxWidth(560);
+
+        String[] optionLabels = {"A", "B", "C", "D"};
+
+        for (int i = 0; i < activeQuestions.size(); i++) {
+            QuizQuestion q = activeQuestions.get(i);
+            int userAnswer = userAnswers[i];
+            boolean isCorrect = (userAnswer == q.correctIndex);
+
+            VBox soalBox = new VBox(6);
+            soalBox.setPadding(new Insets(12));
+            soalBox.setStyle(
+                "-fx-background-color: " + (isCorrect ? "#F0FDF4" : "#FFF7F0") + ";" +
+                "-fx-background-radius: 8px;" +
+                "-fx-border-color: " + (isCorrect ? "#059669" : "#F97316") + ";" +
+                "-fx-border-radius: 8px;" +
+                "-fx-border-width: 1px;"
+            );
+
+            // Nomor + status
+            HBox headerRow = new HBox(8);
+            headerRow.setAlignment(Pos.CENTER_LEFT);
+            Label noLabel = new Label("Soal " + (i + 1));
+            noLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #374151;");
+            Label statusLabel = new Label(isCorrect ? "✓ Benar" : "✗ Salah");
+            statusLabel.setStyle(
+                "-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " +
+                (isCorrect ? "#059669" : "#DC2626") + ";"
+            );
+            headerRow.getChildren().addAll(noLabel, statusLabel);
+
+            // Teks soal
+            Label questionLabel = new Label(q.question);
+            questionLabel.setWrapText(true);
+            questionLabel.setMaxWidth(520);
+            questionLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #1F2937;");
+
+            soalBox.getChildren().addAll(headerRow, questionLabel);
+
+            // Tampilkan semua opsi
+            for (int j = 0; j < q.options.length; j++) {
+                boolean isThisCorrect = (j == q.correctIndex);
+                boolean isUserPick    = (j == userAnswer);
+
+                String prefix = optionLabels[j] + ". ";
+                String suffix = "";
+                if (isThisCorrect) suffix += "  ← Jawaban Benar";
+                if (isUserPick && !isThisCorrect) suffix += "  ← Jawaban Kamu";
+
+                Label optLabel = new Label(prefix + q.options[j] + suffix);
+                optLabel.setWrapText(true);
+                optLabel.setMaxWidth(520);
+
+                String optStyle = "-fx-font-size: 12px; -fx-padding: 4 8 4 8; -fx-background-radius: 4px;";
+                if (isThisCorrect) {
+                    optStyle += "-fx-background-color: #D1FAE5; -fx-text-fill: #065F46; -fx-font-weight: bold;";
+                } else if (isUserPick) {
+                    optStyle += "-fx-background-color: #FEE2E2; -fx-text-fill: #991B1B;";
+                } else {
+                    optStyle += "-fx-text-fill: #6B7280;";
+                }
+                optLabel.setStyle(optStyle);
+                soalBox.getChildren().add(optLabel);
+            }
+
+            reviewBox.getChildren().add(soalBox);
         }
 
-        controller.getContentArea().getChildren().add(resultBox);
+        // Bungkus reviewBox dalam ScrollPane agar bisa discroll
+        ScrollPane reviewScroll = new ScrollPane(reviewBox);
+        reviewScroll.setFitToWidth(true);
+        reviewScroll.setPrefHeight(320);
+        reviewScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+        VBox reviewContainer = new VBox(12, reviewTitle, reviewScroll);
+        reviewContainer.setVisible(false);
+        reviewContainer.setManaged(false);
+
+        Button reviewBtn = new Button("Lihat Review Jawaban");
+        reviewBtn.getStyleClass().addAll("btn-secondary", "btn-medium");
+        reviewBtn.setStyle("-fx-background-color: #F3F4F6; -fx-text-fill: #111827; -fx-border-color: #D1D5DB; -fx-border-radius: 8px;");
+        reviewBtn.setOnAction(e -> {
+            boolean showing = reviewContainer.isVisible();
+            reviewContainer.setVisible(!showing);
+            reviewContainer.setManaged(!showing);
+            reviewBtn.setText(showing ? "Lihat Review Jawaban" : "Sembunyikan Review Jawaban");
+        });
+        // ── AKHIR REVIEW JAWABAN ────────────────────────────────────────
+
+        if (celebrationMascot != null) {
+            resultBox.getChildren().addAll(celebrationMascot, congratLabel, scoreBox, scoreBar, commentLabel, reviewBtn, reviewContainer, backBtn);
+        } else {
+            resultBox.getChildren().addAll(congratLabel, scoreBox, scoreBar, commentLabel, reviewBtn, reviewContainer, backBtn);
+        }
+
+        // Bungkus resultBox dalam ScrollPane utama agar seluruh halaman bisa discroll
+        ScrollPane mainScroll = new ScrollPane(resultBox);
+        mainScroll.setFitToWidth(true);
+        mainScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+        controller.getContentArea().getChildren().add(mainScroll);
         controller.getContentTitleLabel().setText("Evaluasi Kuis");
+    }
+
+    private void showQuizReview(QuizData quiz, QuizService.QuizAttemptReviewData reviewData) {
+        controller.getContentArea().getChildren().clear();
+
+        VBox reviewRoot = new VBox(20);
+        reviewRoot.getStyleClass().add("material-container");
+        reviewRoot.setPadding(new Insets(28));
+        reviewRoot.setMaxWidth(840);
+
+        Label title = new Label("Review Kuis");
+        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #FF7A00;");
+
+        Label subtitle = new Label("Lihat kembali jawaban kamu tanpa harus mengulang kuis.");
+        subtitle.setStyle("-fx-font-size: 14px; -fx-text-fill: #374151;");
+        subtitle.setWrapText(true);
+        subtitle.setMaxWidth(760);
+
+        Label scoreLabel = new Label("Skor terakhir: " + reviewData.getScore() + " / 100");
+        scoreLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #111827;");
+
+        VBox reviewBox = new VBox(14);
+        reviewBox.setAlignment(Pos.TOP_LEFT);
+
+        int[] answers = reviewData.getAnswers();
+        for (int i = 0; i < quiz.getQuestions().size(); i++) {
+            QuestionData q = quiz.getQuestions().get(i);
+            int userAnswer = i < answers.length ? answers[i] : -1;
+            boolean isCorrect = userAnswer == q.getCorrectOptionIndex();
+
+            VBox soalBox = new VBox(8);
+            soalBox.setPadding(new Insets(14));
+            soalBox.setStyle(
+                "-fx-background-color: " + (isCorrect ? "#F0FDF4" : "#FFF7F0") + ";" +
+                "-fx-background-radius: 10px;" +
+                "-fx-border-color: " + (isCorrect ? "#059669" : "#F97316") + ";" +
+                "-fx-border-radius: 10px;" +
+                "-fx-border-width: 1px;"
+            );
+
+            HBox headerRow = new HBox(8);
+            headerRow.setAlignment(Pos.CENTER_LEFT);
+            Label noLabel = new Label("Soal " + (i + 1));
+            noLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #374151;");
+            Label statusLabel = new Label(isCorrect ? "✓ Benar" : "✗ Salah");
+            statusLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: " + (isCorrect ? "#059669" : "#DC2626") + ";");
+            headerRow.getChildren().addAll(noLabel, statusLabel);
+
+            Label questionLabel = new Label(q.getQuestionText());
+            questionLabel.setWrapText(true);
+            questionLabel.setMaxWidth(760);
+            questionLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1F2937;");
+
+            soalBox.getChildren().addAll(headerRow, questionLabel);
+
+            String[] options = q.getOptionsArray();
+            String[] labels = {"A", "B", "C", "D"};
+            for (int j = 0; j < options.length; j++) {
+                boolean isThisCorrect = j == q.getCorrectOptionIndex();
+                boolean isUserPick = j == userAnswer;
+
+                String suffix = "";
+                if (isThisCorrect) suffix += "  ← Jawaban Benar";
+                if (isUserPick && !isThisCorrect) suffix += "  ← Jawaban Kamu";
+
+                Label optLabel = new Label(labels[j] + ". " + options[j] + suffix);
+                optLabel.setWrapText(true);
+                optLabel.setMaxWidth(760);
+                String optStyle = "-fx-font-size: 13px; -fx-padding: 6 10 6 10; -fx-background-radius: 6px;";
+                if (isThisCorrect) {
+                    optStyle += "-fx-background-color: #D1FAE5; -fx-text-fill: #065F46; -fx-font-weight: bold;";
+                } else if (isUserPick) {
+                    optStyle += "-fx-background-color: #FEE2E2; -fx-text-fill: #991B1B;";
+                } else {
+                    optStyle += "-fx-text-fill: #6B7280;";
+                }
+                optLabel.setStyle(optStyle);
+                soalBox.getChildren().add(optLabel);
+            }
+            reviewBox.getChildren().add(soalBox);
+        }
+
+        ScrollPane reviewScroll = new ScrollPane(reviewBox);
+        reviewScroll.setFitToWidth(true);
+        reviewScroll.setPrefHeight(460);
+        reviewScroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+
+        Button backBtn = new Button("Kembali ke Halaman Kuis");
+        backBtn.getStyleClass().addAll("btn-primary", "btn-large");
+        backBtn.setOnAction(e -> controller.showQuizContent());
+
+        reviewRoot.getChildren().addAll(title, subtitle, scoreLabel, reviewScroll, backBtn);
+        controller.getContentArea().getChildren().add(reviewRoot);
+        controller.getContentTitleLabel().setText("Review Kuis");
     }
 
     private void showFormError(Label lbl, String msg) {

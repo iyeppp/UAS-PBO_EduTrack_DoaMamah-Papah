@@ -26,4 +26,7 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
 
     // Mengambil riwayat nilai kuis berdasarkan ID siswa
     List<QuizAttempt> findByStudentId(Long studentId);
+
+    // Mengambil riwayat nilai kuis tertentu untuk siswa tertentu
+    java.util.Optional<QuizAttempt> findByQuizIdAndStudentId(Long quizId, Long studentId);
 }
