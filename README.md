@@ -2,7 +2,7 @@
 
 EduTrack adalah sebuah aplikasi platform edukasi (E-Learning) yang dibangun dengan arsitektur modern yang memisahkan antara *Frontend* dan *Backend*. Aplikasi ini dirancang untuk memudahkan interaksi antara pengajar dan siswa dalam proses belajar mengajar. Pengajar dapat mengelola materi dan kuis, sedangkan siswa dapat mengikuti kelas, membaca materi, serta mengerjakan kuis untuk memantau perkembangan belajar mereka.
 
-Link Presentasi:
+Link Presentasi: https://youtu.be/LMDwDf8blYo
 
 Teknologi yang digunakan dalam proyek ini:
 1. **edutrack-be**: Backend menggunakan Spring Boot REST API
