@@ -2,6 +2,7 @@ package com.doamamah.edutrack.material.model;
 
 import com.doamamah.edutrack.auth.model.Teacher;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * Entity JPA untuk tabel 'course_materials'.
@@ -15,11 +16,13 @@ public class CourseMaterial {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Judul materi tidak boleh kosong")
     @Column(nullable = false)
     private String title;
 
     private String description;
 
+    @NotBlank(message = "Tipe materi tidak boleh kosong (VIDEO atau TEXT)")
     @Column(nullable = false)
     private String type; // "VIDEO" atau "TEXT"
 

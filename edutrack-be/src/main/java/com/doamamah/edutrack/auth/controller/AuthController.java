@@ -4,6 +4,9 @@ import com.doamamah.edutrack.auth.model.Student;
 import com.doamamah.edutrack.auth.model.Teacher;
 import com.doamamah.edutrack.auth.model.User;
 import com.doamamah.edutrack.auth.service.AuthService;
+import com.doamamah.edutrack.exception.DuplicateResourceException;
+import com.doamamah.edutrack.exception.InvalidInputException;
+import com.doamamah.edutrack.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -64,7 +67,10 @@ public class AuthController {
 
             return ResponseEntity.ok(response);
 
-        } catch (RuntimeException e) {
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (InvalidInputException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", e.getMessage()));
         }
@@ -94,7 +100,7 @@ public class AuthController {
                 "username", newUser.getUsername(),
                 "role", newUser.getRole()
             ));
-        } catch (RuntimeException e) {
+        } catch (DuplicateResourceException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
         }
     }
@@ -115,7 +121,7 @@ public class AuthController {
     @GetMapping("/profile/{id}")
     public ResponseEntity<?> getProfile(@PathVariable Long id) {
         try {
-            com.doamamah.edutrack.auth.model.User user = authService.getUserById(id);
+            User user = authService.getUserById(id);
             Map<String, Object> response = new HashMap<>();
             response.put("id", user.getId());
             response.put("username", user.getUsername());
@@ -132,7 +138,7 @@ public class AuthController {
             }
 
             return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
@@ -144,7 +150,7 @@ public class AuthController {
     @PutMapping("/profile/{id}")
     public ResponseEntity<?> updateProfile(@PathVariable Long id, @RequestBody Map<String, String> data) {
         try {
-            com.doamamah.edutrack.auth.model.User user = authService.updateProfile(id, data);
+            User user = authService.updateProfile(id, data);
             Map<String, Object> response = new HashMap<>();
             response.put("id", user.getId());
             response.put("username", user.getUsername());
@@ -158,8 +164,8 @@ public class AuthController {
             }
 
             return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
 

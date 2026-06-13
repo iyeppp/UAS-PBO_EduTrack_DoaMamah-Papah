@@ -1,14 +1,21 @@
 package com.doamamah.edutrack.quiz.service;
 
+import com.doamamah.edutrack.auth.model.Teacher;
+import com.doamamah.edutrack.auth.model.User;
+import com.doamamah.edutrack.auth.repository.UserRepository;
 import com.doamamah.edutrack.quiz.model.Quiz;
+import com.doamamah.edutrack.quiz.model.QuizAttempt;
 import com.doamamah.edutrack.quiz.model.QuizQuestion;
+import com.doamamah.edutrack.quiz.repository.QuizAttemptRepository;
 import com.doamamah.edutrack.quiz.repository.QuizRepository;
+import com.doamamah.edutrack.exception.InvalidInputException;
+import com.doamamah.edutrack.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import com.doamamah.edutrack.auth.model.Teacher;
 
 /**
  * Service layer untuk operasi CRUD kuis.
@@ -17,12 +24,12 @@ import com.doamamah.edutrack.auth.model.Teacher;
 public class QuizService {
 
     private final QuizRepository quizRepository;
-    private final com.doamamah.edutrack.quiz.repository.QuizAttemptRepository attemptRepository;
-    private final com.doamamah.edutrack.auth.repository.UserRepository userRepository;
+    private final QuizAttemptRepository attemptRepository;
+    private final UserRepository userRepository;
 
     public QuizService(QuizRepository quizRepository, 
-                       com.doamamah.edutrack.quiz.repository.QuizAttemptRepository attemptRepository,
-                       com.doamamah.edutrack.auth.repository.UserRepository userRepository) {
+                       QuizAttemptRepository attemptRepository,
+                       UserRepository userRepository) {
         this.quizRepository = quizRepository;
         this.attemptRepository = attemptRepository;
         this.userRepository = userRepository;
@@ -65,8 +72,11 @@ public class QuizService {
             }
         }
         if (teacherId != null) {
-            Teacher teacher = (Teacher) userRepository.findById(teacherId)
-                    .orElseThrow(() -> new RuntimeException("Pengajar tidak ditemukan."));
+            User user = userRepository.findById(teacherId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Pengajar", teacherId));
+            if (!(user instanceof Teacher teacher)) {
+                throw new InvalidInputException("User dengan ID " + teacherId + " bukan pengajar.");
+            }
             quiz.setTeacher(teacher);
         }
         return quizRepository.save(quiz);
@@ -92,7 +102,7 @@ public class QuizService {
      */
     public Quiz updateQuiz(Long id, Quiz updatedData) {
         Quiz existing = quizRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Kuis dengan ID " + id + " tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException("Kuis", id));
 
         existing.setTitle(updatedData.getTitle());
         existing.setDescription(updatedData.getDescription());
@@ -124,11 +134,11 @@ public class QuizService {
      */
     public void deleteQuiz(Long id) {
         if (!quizRepository.existsById(id)) {
-            throw new RuntimeException("Kuis dengan ID " + id + " tidak ditemukan.");
+            throw new ResourceNotFoundException("Kuis", id);
         }
         
         // Hapus semua riwayat pengerjaan yang merujuk ke kuis ini (menghindari Foreign Key violation)
-        List<com.doamamah.edutrack.quiz.model.QuizAttempt> attempts = attemptRepository.findByQuizIdOrderByAttemptDateDesc(id);
+        List<QuizAttempt> attempts = attemptRepository.findByQuizIdOrderByAttemptDateDesc(id);
         if (!attempts.isEmpty()) {
             attemptRepository.deleteAll(attempts);
         }
@@ -139,54 +149,54 @@ public class QuizService {
     /**
      * Menyimpan skor kuis siswa.
      */
-    public com.doamamah.edutrack.quiz.model.QuizAttempt submitAttempt(Long quizId, Long studentId, int score, List<Integer> answers) {
-        com.doamamah.edutrack.quiz.model.Quiz quiz = quizRepository.findById(quizId)
-                .orElseThrow(() -> new RuntimeException("Kuis tidak ditemukan"));
-        com.doamamah.edutrack.auth.model.User student = userRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Siswa tidak ditemukan"));
+    public QuizAttempt submitAttempt(Long quizId, Long studentId, int score, List<Integer> answers) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kuis", quizId));
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Siswa", studentId));
 
         String answersJson = serializeAnswerList(answers);
-        Optional<com.doamamah.edutrack.quiz.model.QuizAttempt> existingAttempt = attemptRepository.findByQuizIdAndStudentId(quizId, studentId);
+        Optional<QuizAttempt> existingAttempt = attemptRepository.findByQuizIdAndStudentId(quizId, studentId);
 
         if (existingAttempt.isPresent()) {
-            com.doamamah.edutrack.quiz.model.QuizAttempt attempt = existingAttempt.get();
+            QuizAttempt attempt = existingAttempt.get();
             attempt.setScore(score);
             attempt.setAnswersJson(answersJson);
-            attempt.setAttemptDate(java.time.LocalDateTime.now());
+            attempt.setAttemptDate(LocalDateTime.now());
             return attemptRepository.save(attempt);
         }
 
-        com.doamamah.edutrack.quiz.model.QuizAttempt attempt = new com.doamamah.edutrack.quiz.model.QuizAttempt(
-                quiz, student, score, answersJson, java.time.LocalDateTime.now());
+        QuizAttempt attempt = new QuizAttempt(
+                quiz, student, score, answersJson, LocalDateTime.now());
         return attemptRepository.save(attempt);
     }
 
-    public com.doamamah.edutrack.quiz.model.QuizAttempt submitAttempt(Long quizId, Long studentId, int score) {
+    public QuizAttempt submitAttempt(Long quizId, Long studentId, int score) {
         return submitAttempt(quizId, studentId, score, null);
     }
 
-    public Optional<com.doamamah.edutrack.quiz.model.QuizAttempt> getAttemptByQuizAndStudent(Long quizId, Long studentId) {
+    public Optional<QuizAttempt> getAttemptByQuizAndStudent(Long quizId, Long studentId) {
         return attemptRepository.findByQuizIdAndStudentId(quizId, studentId);
     }
 
     /**
      * Mengambil riwayat skor kuis berdasarkan kuis (untuk guru).
      */
-    public List<com.doamamah.edutrack.quiz.model.QuizAttempt> getAttemptsByQuiz(Long quizId) {
+    public List<QuizAttempt> getAttemptsByQuiz(Long quizId) {
         return attemptRepository.findByQuizIdOrderByAttemptDateDesc(quizId);
     }
 
     /**
      * Mengambil semua riwayat skor (untuk guru).
      */
-    public List<com.doamamah.edutrack.quiz.model.QuizAttempt> getAllAttempts() {
+    public List<QuizAttempt> getAllAttempts() {
         return attemptRepository.findAllByOrderByAttemptDateDesc();
     }
 
     /**
      * Mengambil riwayat skor kuis berdasarkan ID siswa.
      */
-    public List<com.doamamah.edutrack.quiz.model.QuizAttempt> getAttemptsByStudent(Long studentId) {
+    public List<QuizAttempt> getAttemptsByStudent(Long studentId) {
         return attemptRepository.findByStudentId(studentId);
     }
 }

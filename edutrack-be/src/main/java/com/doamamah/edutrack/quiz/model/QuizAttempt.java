@@ -5,6 +5,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+/**
+ * Entity JPA untuk tabel 'quiz_attempts'.
+ * Menyimpan hasil pengerjaan kuis oleh siswa, termasuk skor dan jawaban.
+ *
+ * <p>Setiap siswa hanya dapat memiliki satu percobaan per kuis.
+ * Jika siswa mengulang kuis, data percobaan sebelumnya akan diperbarui.</p>
+ *
+ * <p>Field {@code answersJson} menyimpan daftar index jawaban siswa
+ * dalam format JSON array string, contoh: {@code "[1,2,0,3]"}.</p>
+ */
 @Entity
 @Table(name = "quiz_attempts")
 public class QuizAttempt {
@@ -35,6 +45,15 @@ public class QuizAttempt {
     public QuizAttempt() {
     }
 
+    /**
+     * Constructor untuk membuat percobaan kuis baru.
+     *
+     * @param quiz       kuis yang dikerjakan
+     * @param student    siswa yang mengerjakan
+     * @param score      skor yang diperoleh (0-100)
+     * @param answersJson daftar jawaban dalam format JSON array
+     * @param attemptDate waktu pengerjaan kuis
+     */
     public QuizAttempt(Quiz quiz, User student, int score, String answersJson, LocalDateTime attemptDate) {
         this.quiz = quiz;
         this.student = student;

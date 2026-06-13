@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -26,8 +27,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countTeachers();
 
     @Query("SELECT u FROM User u WHERE TYPE(u) = Student")
-    java.util.List<User> findAllStudents();
+    List<User> findAllStudents();
 
     @Query("SELECT u FROM User u WHERE TYPE(u) = Teacher")
-    java.util.List<User> findAllTeachers();
+    List<User> findAllTeachers();
 }

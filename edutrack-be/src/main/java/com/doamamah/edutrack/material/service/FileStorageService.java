@@ -11,6 +11,14 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
+/**
+ * Service untuk mengelola penyimpanan file attachment materi.
+ *
+ * <p>File yang diunggah disimpan di direktori {@code uploads/} di root project.
+ * Nama file diganti dengan UUID unik untuk menghindari konflik penamaan.</p>
+ *
+ * @see com.doamamah.edutrack.material.controller.MaterialController#uploadFile
+ */
 @Service
 public class FileStorageService {
 
@@ -25,6 +33,14 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * Menyimpan file yang diunggah ke direktori penyimpanan.
+     * Nama file asli diganti dengan UUID unik untuk menghindari konflik.
+     *
+     * @param file file yang diunggah melalui multipart request
+     * @return nama file unik yang tersimpan (UUID + ekstensi asli)
+     * @throws RuntimeException jika terjadi kesalahan saat menyimpan file
+     */
     public String storeFile(MultipartFile file) {
         // Normalize file name
         String originalFileName = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "unknown_file");

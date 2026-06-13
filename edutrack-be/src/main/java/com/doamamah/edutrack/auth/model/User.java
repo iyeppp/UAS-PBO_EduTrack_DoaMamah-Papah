@@ -1,6 +1,9 @@
 package com.doamamah.edutrack.auth.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 /**
  * Entity JPA untuk tabel 'users'.
@@ -17,13 +20,20 @@ public abstract class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Username tidak boleh kosong")
+    @Size(min = 3, max = 50, message = "Username harus antara 3-50 karakter")
     @Column(nullable = false, unique = true)
     private String username;
 
+    @NotBlank(message = "Password tidak boleh kosong")
+    @Size(min = 3, message = "Password minimal 3 karakter")
     @Column(nullable = false)
     private String password;
 
+    @NotBlank(message = "Nama lengkap tidak boleh kosong")
     private String fullName;
+
+    @Email(message = "Format email tidak valid")
     private String email;
 
     @Column(columnDefinition = "CLOB")

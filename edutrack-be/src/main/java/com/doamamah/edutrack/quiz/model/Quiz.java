@@ -2,6 +2,7 @@ package com.doamamah.edutrack.quiz.model;
 
 import com.doamamah.edutrack.auth.model.Teacher;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,11 +18,13 @@ public class Quiz {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Judul kuis tidak boleh kosong")
     @Column(nullable = false)
     private String title;
 
     private String description;
 
+    @NotBlank(message = "Tingkat kesulitan kuis tidak boleh kosong")
     @Column(nullable = false)
     private String difficulty; // "Mudah", "Sedang", "Sulit"
 

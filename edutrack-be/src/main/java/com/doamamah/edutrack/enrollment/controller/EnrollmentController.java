@@ -4,6 +4,9 @@ import com.doamamah.edutrack.enrollment.model.Enrollment;
 import com.doamamah.edutrack.auth.model.Student;
 import com.doamamah.edutrack.auth.model.Teacher;
 import com.doamamah.edutrack.enrollment.service.EnrollmentService;
+import com.doamamah.edutrack.exception.DuplicateResourceException;
+import com.doamamah.edutrack.exception.InvalidInputException;
+import com.doamamah.edutrack.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +42,9 @@ public class EnrollmentController {
                 "message", "Berhasil mendaftar ke kelas pengajar.",
                 "enrollmentId", enrollment.getId()
             ));
-        } catch (RuntimeException e) {
+        } catch (DuplicateResourceException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (ResourceNotFoundException | InvalidInputException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
@@ -52,8 +57,8 @@ public class EnrollmentController {
         try {
             enrollmentService.unenrollStudent(studentId, teacherId);
             return ResponseEntity.ok(Map.of("message", "Berhasil keluar dari kelas pengajar."));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
 

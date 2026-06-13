@@ -2,6 +2,9 @@ package com.doamamah.edutrack.quiz.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * Entity JPA untuk tabel 'quiz_questions'.
@@ -15,24 +18,31 @@ public class QuizQuestion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Teks pertanyaan tidak boleh kosong")
     @Column(name = "question_text", nullable = false, columnDefinition = "CLOB")
     private String questionText;
 
+    @NotBlank(message = "Opsi A tidak boleh kosong")
     @Column(name = "option_a", nullable = false)
     private String optionA;
 
+    @NotBlank(message = "Opsi B tidak boleh kosong")
     @Column(name = "option_b", nullable = false)
     private String optionB;
 
+    @NotBlank(message = "Opsi C tidak boleh kosong")
     @Column(name = "option_c", nullable = false)
     private String optionC;
 
+    @NotBlank(message = "Opsi D tidak boleh kosong")
     @Column(name = "option_d", nullable = false)
     private String optionD;
 
     /**
      * Index jawaban yang benar (0 = A, 1 = B, 2 = C, 3 = D).
      */
+    @Min(value = 0, message = "Index jawaban benar minimal 0")
+    @Max(value = 3, message = "Index jawaban benar maksimal 3")
     @Column(name = "correct_option_index", nullable = false)
     private int correctOptionIndex;
 

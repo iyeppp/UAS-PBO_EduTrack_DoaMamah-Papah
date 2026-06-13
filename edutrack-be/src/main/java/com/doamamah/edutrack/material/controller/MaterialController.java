@@ -3,6 +3,9 @@ package com.doamamah.edutrack.material.controller;
 import com.doamamah.edutrack.material.model.CourseMaterial;
 import com.doamamah.edutrack.material.service.FileStorageService;
 import com.doamamah.edutrack.material.service.MaterialService;
+import com.doamamah.edutrack.exception.InvalidInputException;
+import com.doamamah.edutrack.exception.ResourceNotFoundException;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -121,11 +124,11 @@ public class MaterialController {
      * Memperbarui materi yang sudah ada.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateMaterial(@PathVariable Long id, @RequestBody CourseMaterial material) {
+    public ResponseEntity<?> updateMaterial(@PathVariable Long id, @Valid @RequestBody CourseMaterial material) {
         try {
             CourseMaterial updated = materialService.updateMaterial(id, material);
             return ResponseEntity.ok(mapMaterial(updated));
-        } catch (RuntimeException e) {
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         }
@@ -140,7 +143,7 @@ public class MaterialController {
         try {
             materialService.deleteMaterial(id);
             return ResponseEntity.ok(Map.of("message", "Materi berhasil dihapus."));
-        } catch (RuntimeException e) {
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         }
@@ -155,7 +158,9 @@ public class MaterialController {
         try {
             materialService.markAsViewed(id, studentId);
             return ResponseEntity.ok(Map.of("message", "Materi ditandai sudah dibaca"));
-        } catch (RuntimeException e) {
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (InvalidInputException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }

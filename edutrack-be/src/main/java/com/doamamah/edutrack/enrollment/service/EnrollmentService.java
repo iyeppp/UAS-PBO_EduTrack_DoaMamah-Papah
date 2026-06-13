@@ -6,6 +6,9 @@ import com.doamamah.edutrack.auth.model.Teacher;
 import com.doamamah.edutrack.auth.model.User;
 import com.doamamah.edutrack.enrollment.repository.EnrollmentRepository;
 import com.doamamah.edutrack.auth.repository.UserRepository;
+import com.doamamah.edutrack.exception.DuplicateResourceException;
+import com.doamamah.edutrack.exception.InvalidInputException;
+import com.doamamah.edutrack.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,19 +35,19 @@ public class EnrollmentService {
     public Enrollment enrollStudent(Long studentId, Long teacherId) {
         // Cek apakah sudah terdaftar
         if (enrollmentRepository.findByStudentIdAndTeacherId(studentId, teacherId).isPresent()) {
-            throw new RuntimeException("Siswa sudah terdaftar di kelas pengajar ini.");
+            throw new DuplicateResourceException("Siswa sudah terdaftar di kelas pengajar ini.");
         }
 
         User studentUser = userRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Siswa tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException("Siswa", studentId));
         User teacherUser = userRepository.findById(teacherId)
-                .orElseThrow(() -> new RuntimeException("Pengajar tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException("Pengajar", teacherId));
 
         if (!(studentUser instanceof Student)) {
-            throw new RuntimeException("User bukan siswa.");
+            throw new InvalidInputException("User bukan siswa.");
         }
         if (!(teacherUser instanceof Teacher)) {
-            throw new RuntimeException("User bukan pengajar.");
+            throw new InvalidInputException("User bukan pengajar.");
         }
 
         Enrollment enrollment = new Enrollment((Student) studentUser, (Teacher) teacherUser);
@@ -57,7 +60,7 @@ public class EnrollmentService {
     @Transactional
     public void unenrollStudent(Long studentId, Long teacherId) {
         Enrollment enrollment = enrollmentRepository.findByStudentIdAndTeacherId(studentId, teacherId)
-                .orElseThrow(() -> new RuntimeException("Enrollment tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment tidak ditemukan."));
         enrollmentRepository.delete(enrollment);
     }
 

@@ -6,7 +6,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * Repository untuk akses data QuizAttempt (percobaan kuis) dari database.
+ * Menyediakan query untuk mengambil riwayat pengerjaan kuis berdasarkan kuis, siswa,
+ * serta statistik rata-rata skor dan partisipasi.
+ */
 @Repository
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> {
     
@@ -28,5 +34,5 @@ public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> 
     List<QuizAttempt> findByStudentId(Long studentId);
 
     // Mengambil riwayat nilai kuis tertentu untuk siswa tertentu
-    java.util.Optional<QuizAttempt> findByQuizIdAndStudentId(Long quizId, Long studentId);
+    Optional<QuizAttempt> findByQuizIdAndStudentId(Long quizId, Long studentId);
 }

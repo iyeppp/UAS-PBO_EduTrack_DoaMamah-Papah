@@ -1,8 +1,11 @@
 package com.doamamah.edutrack.quiz.controller;
 
 import com.doamamah.edutrack.quiz.model.Quiz;
+import com.doamamah.edutrack.quiz.model.QuizAttempt;
 import com.doamamah.edutrack.quiz.model.QuizQuestion;
 import com.doamamah.edutrack.quiz.service.QuizService;
+import com.doamamah.edutrack.exception.ResourceNotFoundException;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -109,11 +112,11 @@ public class QuizController {
      * Memperbarui kuis yang sudah ada.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateQuiz(@PathVariable Long id, @RequestBody Quiz quiz) {
+    public ResponseEntity<?> updateQuiz(@PathVariable Long id, @Valid @RequestBody Quiz quiz) {
         try {
             Quiz updated = quizService.updateQuiz(id, quiz);
             return ResponseEntity.ok(mapQuiz(updated));
-        } catch (RuntimeException e) {
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         }
@@ -128,7 +131,7 @@ public class QuizController {
         try {
             quizService.deleteQuiz(id);
             return ResponseEntity.ok(Map.of("message", "Kuis berhasil dihapus."));
-        } catch (RuntimeException e) {
+        } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         }
@@ -150,7 +153,7 @@ public class QuizController {
                         .map(n -> ((Number) n).intValue())
                         .toList();
             }
-            com.doamamah.edutrack.quiz.model.QuizAttempt attempt = quizService.submitAttempt(id, studentId, score, answers);
+            QuizAttempt attempt = quizService.submitAttempt(id, studentId, score, answers);
             return ResponseEntity.ok(attempt);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -227,7 +230,7 @@ public class QuizController {
         return ResponseEntity.ok(mapAttempts(quizService.getAttemptsByStudent(studentId)));
     }
 
-    private List<Map<String, Object>> mapAttempts(List<com.doamamah.edutrack.quiz.model.QuizAttempt> attempts) {
+    private List<Map<String, Object>> mapAttempts(List<QuizAttempt> attempts) {
         return attempts.stream().map(attempt -> Map.<String, Object>of(
             "id", attempt.getId(),
             "score", attempt.getScore(),

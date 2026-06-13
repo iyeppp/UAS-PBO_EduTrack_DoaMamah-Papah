@@ -4,6 +4,13 @@ import com.doamamah.edutrack.auth.model.Student;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+/**
+ * Entity JPA untuk tabel 'material_progress'.
+ * Menyimpan catatan progres belajar siswa — menandai materi mana yang sudah dibaca/ditonton.
+ *
+ * <p>Setiap kombinasi {@code student_id} dan {@code material_id} bersifat unik,
+ * sehingga satu materi hanya ditandai sekali per siswa.</p>
+ */
 @Entity
 @Table(name = "material_progress", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"student_id", "material_id"})
@@ -28,6 +35,13 @@ public class MaterialProgress {
     public MaterialProgress() {
     }
 
+    /**
+     * Constructor untuk membuat progress baru.
+     * Waktu dilihat ({@code viewedAt}) diset otomatis ke waktu saat ini.
+     *
+     * @param student siswa yang membaca/menonton materi
+     * @param material materi yang diakses
+     */
     public MaterialProgress(Student student, CourseMaterial material) {
         this.student = student;
         this.material = material;

@@ -9,6 +9,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * REST Controller untuk mengelola data user secara umum.
+ * Endpoint ini terpisah dari auth, difokuskan pada operasi terkait manajemen user
+ * seperti mengambil daftar siswa atau pengajar.
+ */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -19,6 +24,12 @@ public class UserController {
         this.userRepository = userRepository;
     }
 
+    /**
+     * GET /api/users/students
+     * Mendapatkan daftar semua pengguna dengan role Student.
+     *
+     * @return List user yang bertipe Student
+     */
     @GetMapping("/students")
     public ResponseEntity<List<User>> getAllStudents() {
         return ResponseEntity.ok(userRepository.findAllStudents());

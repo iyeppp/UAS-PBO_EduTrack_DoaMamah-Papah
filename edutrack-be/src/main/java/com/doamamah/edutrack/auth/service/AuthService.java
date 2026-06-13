@@ -4,11 +4,13 @@ import com.doamamah.edutrack.auth.model.Student;
 import com.doamamah.edutrack.auth.model.Teacher;
 import com.doamamah.edutrack.auth.model.User;
 import com.doamamah.edutrack.auth.repository.UserRepository;
+import com.doamamah.edutrack.exception.DuplicateResourceException;
+import com.doamamah.edutrack.exception.InvalidInputException;
+import com.doamamah.edutrack.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-
 import java.util.Optional;
 
 /**
@@ -30,20 +32,21 @@ public class AuthService {
      * @param username nama pengguna
      * @param password kata sandi (plain text)
      * @return User jika kredensial valid
-     * @throws RuntimeException jika username tidak ditemukan atau password salah
+     * @throws ResourceNotFoundException jika username tidak ditemukan
+     * @throws InvalidInputException jika password salah
      */
     public User login(String username, String password) {
         Optional<User> optionalUser = userRepository.findByUsername(username);
 
         if (optionalUser.isEmpty()) {
-            throw new RuntimeException("Username tidak ditemukan.");
+            throw new ResourceNotFoundException("Username tidak ditemukan.");
         }
 
         User user = optionalUser.get();
 
         // Perbandingan password plain text (sesuai kebutuhan tugas)
         if (!user.getPassword().equals(password)) {
-            throw new RuntimeException("Password salah.");
+            throw new InvalidInputException("Password salah.");
         }
 
         return user;
@@ -54,7 +57,7 @@ public class AuthService {
      *
      * @param userData data dari request JSON
      * @return User yang berhasil didaftarkan
-     * @throws RuntimeException jika username sudah digunakan
+     * @throws DuplicateResourceException jika username sudah digunakan
      */
     public User register(Map<String, String> userData) {
         String username = userData.get("username");
@@ -64,7 +67,7 @@ public class AuthService {
         String role = userData.get("role");
 
         if (userRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("Username '" + username + "' sudah digunakan.");
+            throw new DuplicateResourceException("Username '" + username + "' sudah digunakan.");
         }
 
         User newUser;
@@ -84,7 +87,7 @@ public class AuthService {
      */
     public User getUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
     }
 
     /**
@@ -92,7 +95,7 @@ public class AuthService {
      */
     public User updateProfile(Long id, Map<String, String> data) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
 
         if (data.containsKey("fullName") && data.get("fullName") != null && !data.get("fullName").isBlank()) {
             user.setFullName(data.get("fullName"));
@@ -112,7 +115,7 @@ public class AuthService {
     /**
      * Mengambil daftar semua pengajar.
      */
-    public java.util.List<User> getAllTeachers() {
+    public List<User> getAllTeachers() {
         return userRepository.findAllTeachers();
     }
 }

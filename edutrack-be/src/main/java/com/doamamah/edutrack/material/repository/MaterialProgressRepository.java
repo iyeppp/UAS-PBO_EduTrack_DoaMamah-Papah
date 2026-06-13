@@ -7,6 +7,10 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository untuk akses data MaterialProgress dari database.
+ * Menyediakan query untuk melacak materi yang sudah diakses oleh siswa.
+ */
 @Repository
 public interface MaterialProgressRepository extends JpaRepository<MaterialProgress, Long> {
     

@@ -7,6 +7,8 @@ import com.doamamah.edutrack.material.repository.MaterialProgressRepository;
 import com.doamamah.edutrack.auth.repository.UserRepository;
 import com.doamamah.edutrack.auth.model.Student;
 import com.doamamah.edutrack.auth.model.User;
+import com.doamamah.edutrack.exception.InvalidInputException;
+import com.doamamah.edutrack.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,8 +61,11 @@ public class MaterialService {
      */
     public CourseMaterial addMaterial(CourseMaterial material, Long teacherId) {
         if (teacherId != null) {
-            Teacher teacher = (Teacher) userRepository.findById(teacherId)
-                    .orElseThrow(() -> new RuntimeException("Pengajar tidak ditemukan."));
+            User user = userRepository.findById(teacherId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Pengajar", teacherId));
+            if (!(user instanceof Teacher teacher)) {
+                throw new InvalidInputException("User dengan ID " + teacherId + " bukan pengajar.");
+            }
             material.setTeacher(teacher);
         }
         return materialRepository.save(material);
@@ -91,7 +96,7 @@ public class MaterialService {
      */
     public CourseMaterial updateMaterial(Long id, CourseMaterial updatedData) {
         CourseMaterial existing = materialRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Materi dengan ID " + id + " tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException("Materi", id));
 
         existing.setTitle(updatedData.getTitle());
         existing.setDescription(updatedData.getDescription());
@@ -106,7 +111,7 @@ public class MaterialService {
     @Transactional
     public void deleteMaterial(Long id) {
         if (!materialRepository.existsById(id)) {
-            throw new RuntimeException("Materi dengan ID " + id + " tidak ditemukan.");
+            throw new ResourceNotFoundException("Materi", id);
         }
         // Hapus progress terlebih dahulu untuk mencegah foreign key constraint error
         progressRepository.deleteByMaterialId(id);
@@ -122,13 +127,13 @@ public class MaterialService {
         }
 
         CourseMaterial material = materialRepository.findById(materialId)
-                .orElseThrow(() -> new RuntimeException("Materi tidak ditemukan"));
+                .orElseThrow(() -> new ResourceNotFoundException("Materi", materialId));
         
         User user = userRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", studentId));
 
         if (!(user instanceof Student)) {
-            throw new RuntimeException("Hanya siswa yang dapat menandai progress materi");
+            throw new InvalidInputException("Hanya siswa yang dapat menandai progress materi");
         }
 
         MaterialProgress progress = new MaterialProgress((Student) user, material);
